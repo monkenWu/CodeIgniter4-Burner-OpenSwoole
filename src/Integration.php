@@ -7,7 +7,7 @@ use CodeIgniter\CLI\CLI;
 
 class Integration implements IntegrationInterface
 {
-    public function initServer(string $configType = 'basic')
+    public function initServer(string $configType = 'basic', string $frontLoader = '')
     {
         $allowConfigType = ['basic', 'websocket'];
         if(in_array($configType, $allowConfigType) == false){
