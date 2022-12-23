@@ -20,10 +20,12 @@ You can install this Driver with the following command.
 composer require monken/codeigniter4-burner-OpenSwoole
 ```
 
-Initialize Server files using built-in commands in the library
+Initialize Server files using built-in commands in the library.
+
+The 'basic' parameter will initialize the normal http server configuration file, and if the 'websocket' parameter is used, it will initialize the websocket-specific configuration file.
 
 ```
-php spark burner:init OpenSwoole
+php spark burner:init OpenSwoole [basic or websocket]
 ```
 
 ## Command
