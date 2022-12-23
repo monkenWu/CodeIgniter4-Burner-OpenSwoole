@@ -38,7 +38,7 @@ class Integration implements IntegrationInterface
         file_put_contents($configPath, $cnf);
     }
 
-    public function startServer(string $frontLoader)
+    public function startServer(string $frontLoader, string $commands = '')
     {
         $nowDir     = __DIR__;
         $workerPath = $nowDir . DIRECTORY_SEPARATOR . 'Worker.php';
