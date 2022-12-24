@@ -23,7 +23,7 @@
     "require": {
         "php": "^8.0 || ^8.1 || ^8.2",
         "monken/codeigniter4-burner" : "*",
-        "imefisto/psr-swoole-native": "^1.1"
+        "openswoole/ide-helper": "^22"
     },
     "autoload": {
 		"psr-4": {

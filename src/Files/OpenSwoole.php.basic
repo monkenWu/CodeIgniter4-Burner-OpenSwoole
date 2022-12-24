@@ -39,7 +39,7 @@ class OpenSwoole extends BaseConfig
      *
      * @see https://openswoole.com/docs/modules/swoole-server-construct
      */
-    public $mode = SWOOLE_BASE;
+    public $mode = SWOOLE_PROCESS;
 
     /**
      * The socket type of the server.
@@ -60,6 +60,7 @@ class OpenSwoole extends BaseConfig
      */
     public $config = [
         'worker_num'            => 1,
+        'daemonize'             => false,
         'max_request'           => 0,
         'document_root'         => '{{static_path}}',
         'enable_static_handler' => true,
@@ -68,22 +69,52 @@ class OpenSwoole extends BaseConfig
     ];
 
     /**
+     * Auto-scan changed files
+     *
+     * @var bool
+     */
+    public $autoReload = false;
+
+    /**
+     * Auto Reload Mode
+     *
+     * @var string restart or reload
+     */
+    public $autoReloadMode = 'restart';
+
+    /**
+     * Auto-scan of the root directory
+     *
+     * @var string
+     */
+    public $autoReloadDir = '/app/CodeIgniter4-Burner/dev';
+
+    /**
+     * Files with these filename-extension will be auto-scanned.
+     *
+     * @var array
+     */
+    public $autoReloadScanExtensions = ['php', 'env'];
+
+    /**
+     * The Swoole-Start event is registered by Burner.
+     * If you need to use the Start event, please declare it in this method.
+     *
+     * @param Server $server
+     * @return void
+     */
+    public function serverStart(Server $server){
+
+    }
+
+    /**
      * You can declare some additional server setting in this method.
      *
      * @return void
      */
     public function server(Server $server)
     {
-        $config = $this;
-        $server->on('Start', static function (Server $server) use ($config) {
-            fwrite(STDOUT, sprintf(
-                'Swoole %s server is started at %s:%d %s',
-                explode('\\', $config->httpDriver)[1],
-                $config->listeningIp,
-                $config->listeningPort,
-                PHP_EOL
-            ));
-        });
+        //Please do not register the 'start' event repeatedly.
 
         $server->on('request', static function (Request $swooleRequest, Response $swooleResponse) {
             // Burner handles CodeIgniter4 entry points.

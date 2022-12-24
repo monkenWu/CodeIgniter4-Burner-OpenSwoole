@@ -36,6 +36,22 @@ When you do not pass any parameters, it will be preset to start the server.
 php spark burner:start OpenSwoole
 ```
 
+### stop server
+
+```
+php spark burner:start OpenSwoole stop
+```
+
+### reload worker
+
+```
+php spark burner:start OpenSwoole reload worker
+```
+
+```
+php spark burner:start OpenSwoole reload task_worker
+```
+
 ## OpenSwoole Server Settings
 
 
@@ -79,7 +95,32 @@ You can refer to the [OpenSwoole HTTP Server Settings](https://openswoole.com/do
 
 #### OpenSwoole
 
-> Burner does not currently support automatic loading of OpenSwoole drivers.
+In the default circumstance of OpenSwoole, you must restart the server everytime after you revised any PHP files so that your revision will effective. It seems not that friendly during development.
+
+You can modify your `app/Config/OpenSwoole.php` configuration file, add the following settings and restart the server.
+
+```php
+/**
+ * Auto-scan changed files
+ *
+ * @var bool
+ */
+public $autoReload = true;
+
+/**
+ * Auto Reload Mode
+ *
+ * @var string restart or reload
+ */
+public $autoReloadMode = 'restart';
+```
+
+Burner offers two types of Reload, which you can switch between by adjusting `autoReloadMode`.
+
+* `restart` means that the server is automatically restarted every time a file is changed. It's as if you shut down the server yourself and then turn it back on again, which ensures that all php files are reloaded.
+* `reload` only reloads the running worker, just as the [documentation](https://openswoole.com/docs/modules/swoole-server-reload#hot-code-linux-signal-trigger) says. Note that this mode may not handle all cases where, for example, you generate some changes to the project core-php file via `composer require/update`. 
+
+> The `Automatic reload` function is very resource-intensive, please do not activate the option in the formal environment.
 
 ### Developing and debugging in a environment with only one Worker
 

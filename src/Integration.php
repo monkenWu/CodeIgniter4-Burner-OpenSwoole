@@ -34,16 +34,99 @@ class Integration implements IntegrationInterface
 
         $cnf = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'Files' . DIRECTORY_SEPARATOR . 'OpenSwoole.php.' . $configType);
         $cnf = str_replace('{{static_path}}', ROOTPATH . 'public', $cnf);
+        $cnf = str_replace('{{reload_path}}', realpath(APPPATH . '../'), $cnf);
         $cnf = str_replace('{{log_path}}', realpath(WRITEPATH . 'logs') . DIRECTORY_SEPARATOR . 'OpenSwoole.log', $cnf);
         file_put_contents($configPath, $cnf);
     }
 
     public function startServer(string $frontLoader, string $commands = '')
     {
+        if($commands === 'stop'){
+            self::stopServer();
+            CLI::write('The OpenSwoole server is stop.');
+            return;
+        }
+
+        if($commands === 'reload worker'){
+            self::reloadWork(false);
+            CLI::write('The OpenSwoole server workers is reload.');
+            return;
+        }
+
+        if($commands === 'reload task_worker'){
+            self::reloadWork(true);
+            CLI::write('The OpenSwoole server task-workers is reload.');
+            return;
+        }
+
         $nowDir     = __DIR__;
         $workerPath = $nowDir . DIRECTORY_SEPARATOR . 'Worker.php';
-        $start      = popen("php {$workerPath} -f={$frontLoader}", 'w');
+        $start      = popen("php {$workerPath} -f={$frontLoader} {$commands}", 'w');
         pclose($start);
-        echo PHP_EOL;
+        if(self::needRestart()){
+            $this->startServer($frontLoader, '-r=restart');
+        }else{
+            echo PHP_EOL;
+        }
     }
+
+    public static function writeMasterPid(int $pid)
+    {
+        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+        $temp = "{$baseDir}burner_swoole_master.tmp";
+        if(is_file($temp)) unlink($temp);
+        file_put_contents("{$baseDir}burner_swoole_master.tmp", $pid);
+    }
+
+    public static function writeRestartSignal()
+    {
+        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+        file_put_contents("{$baseDir}burner_swoole_restart.tmp", 'restart');
+    }
+
+    public static function needRestart() : bool
+    {
+        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+        $temp = "{$baseDir}burner_swoole_restart.tmp";
+        $result = false;
+        if(is_file($temp)){
+            $text = file_get_contents($temp);
+            if($text == 'restart'){
+                $result = true;
+            }
+            unlink($temp);
+        }
+        return $result;
+    }
+
+    public static function stopServer(): bool
+    {
+        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+        $temp = "{$baseDir}burner_swoole_master.tmp";
+        $result = false;
+        if(is_file($temp)){
+            $pid = file_get_contents($temp);
+            $kill      = popen("kill -SIGTERM {$pid}", 'w');
+            pclose($kill);
+            $result = true;
+            unlink($temp);
+        }
+        return $result;
+    }
+
+    public static function reloadWork(bool $isTaskWork): bool
+    {
+        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+        $temp = "{$baseDir}burner_swoole_master.tmp";
+        $result = false;
+        if(is_file($temp)){
+            $pid = file_get_contents($temp);
+            $signal = $isTaskWork ? '-USR2' : '-USR1';
+            $kill      = popen("kill {$signal} {$pid}", 'w');
+            pclose($kill);
+            $result = true;
+        }
+        return $result;
+    }
+
 }
