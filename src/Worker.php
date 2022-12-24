@@ -2,7 +2,7 @@
 
 namespace Monken\CIBurner\OpenSwoole;
 
-$opt = getopt('f:');
+$opt = getopt('f:r::');
 require_once $opt['f'];
 
 define('BURNER_DRIVER', 'OpenSwoole');
@@ -17,6 +17,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\Http\Server as HttpServer;
+use Swoole\Server;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server as WebSocketServer;
 
@@ -188,6 +189,7 @@ class Worker
     }
 }
 
+$isRestart  = $opt['r'] ?? false;
 /** @var \Config\OpenSwoole */
 $openSwooleConfig = Factories::config('OpenSwoole');
 $server           = new ($openSwooleConfig->httpDriver)(
@@ -198,5 +200,45 @@ $server           = new ($openSwooleConfig->httpDriver)(
 );
 Worker::init($server);
 $server->set($openSwooleConfig->config);
+$server->on('Start', static function (Server $server) use ($openSwooleConfig, $isRestart) {
+    
+    Integration::writeMasterPid($server->master_pid);
+
+    if($isRestart === false){
+        fwrite(STDOUT, sprintf(
+            'Swoole %s server is started at %s:%d %s',
+            explode('\\', $openSwooleConfig->httpDriver)[1],
+            $openSwooleConfig->listeningIp,
+            $openSwooleConfig->listeningPort,
+            PHP_EOL . PHP_EOL
+        ));    
+    }else{
+        fwrite(STDOUT, sprintf(
+            'Swoole %s server is restarted.%s',
+            explode('\\', $openSwooleConfig->httpDriver)[1],
+            PHP_EOL . PHP_EOL
+        ));    
+    }
+
+    $isDaemonize = $openSwooleConfig->config['daemonize'] ?? false;
+    if($openSwooleConfig->autoReload && ($isDaemonize !== true)){
+        \OpenSwoole\Timer::tick(1000, function() use ($openSwooleConfig, $server){
+            FileMonitor::checkFilesChange(
+                $openSwooleConfig,
+                $server
+            );
+        });
+    }
+
+    $openSwooleConfig->serverStart($server);
+});
 $openSwooleConfig->server($server);
+
+$isDaemonize = $openSwooleConfig->config['daemonize'] ?? false;
+if($isDaemonize){
+    fwrite(STDOUT, sprintf(
+        'Swoole server in daemon mode. %s',
+        PHP_EOL 
+    ));    
+}
 $server->start();
