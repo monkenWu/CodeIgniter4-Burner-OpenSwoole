@@ -87,7 +87,7 @@ class OpenSwoole extends BaseConfig
      *
      * @var string
      */
-    public $autoReloadDir = '/app/CodeIgniter4-Burner/dev';
+    public $autoReloadDir = '{{reload_path}}';
 
     /**
      * Files with these filename-extension will be auto-scanned.
