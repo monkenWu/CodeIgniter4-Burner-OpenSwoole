@@ -2,7 +2,7 @@
 
 namespace Monken\CIBurner\OpenSwoole;
 
-$opt = getopt('f:r::');
+$opt = getopt('f:r::s::');
 require_once $opt['f'];
 
 define('BURNER_DRIVER', 'OpenSwoole');
@@ -188,10 +188,15 @@ class Worker
         ))->withUploadedFiles($swooleRequest->files ?? []);
     }
 }
-
-$isRestart  = $opt['r'] ?? false;
 /** @var \Config\OpenSwoole */
 $openSwooleConfig = Factories::config('OpenSwoole');
+
+//handle command parameters
+$isRestart  = $opt['r'] ?? false;
+if(isset($opt['s'])){
+    $openSwooleConfig->config['daemonize'] = ($opt['s'] === 'daemon');
+}
+
 $server           = new ($openSwooleConfig->httpDriver)(
     $openSwooleConfig->listeningIp,
     $openSwooleConfig->listeningPort,

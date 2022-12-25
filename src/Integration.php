@@ -41,6 +41,10 @@ class Integration implements IntegrationInterface
 
     public function startServer(string $frontLoader, string $commands = '')
     {
+        if($commands === 'daemon'){
+            $commands = '-s=daemon';
+        }
+
         if($commands === 'stop'){
             self::stopServer();
             CLI::write('The OpenSwoole server is stop.');
@@ -70,24 +74,31 @@ class Integration implements IntegrationInterface
         }
     }
 
+    protected static function getTempFilePath(string $fileName): string
+    {
+        $nowDir     = __DIR__;
+        $projectHash = substr(sha1($nowDir), 0, 5);
+        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+        $result = sprintf('%s%s_%s', $baseDir, $projectHash, $fileName);
+        return $result;
+    }
+
     public static function writeMasterPid(int $pid)
     {
-        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
-        $temp = "{$baseDir}burner_swoole_master.tmp";
+        $temp = self::getTempFilePath("burner_swoole_master.tmp");
         if(is_file($temp)) unlink($temp);
-        file_put_contents("{$baseDir}burner_swoole_master.tmp", $pid);
+        file_put_contents($temp, $pid);
     }
 
     public static function writeRestartSignal()
     {
-        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
-        file_put_contents("{$baseDir}burner_swoole_restart.tmp", 'restart');
+        $temp = self::getTempFilePath("burner_swoole_restart.tmp");
+        file_put_contents($temp, 'restart');
     }
 
     public static function needRestart() : bool
     {
-        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
-        $temp = "{$baseDir}burner_swoole_restart.tmp";
+        $temp = self::getTempFilePath("burner_swoole_restart.tmp");
         $result = false;
         if(is_file($temp)){
             $text = file_get_contents($temp);
@@ -101,8 +112,7 @@ class Integration implements IntegrationInterface
 
     public static function stopServer(): bool
     {
-        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
-        $temp = "{$baseDir}burner_swoole_master.tmp";
+        $temp = self::getTempFilePath("burner_swoole_master.tmp");
         $result = false;
         if(is_file($temp)){
             $pid = file_get_contents($temp);
@@ -116,8 +126,7 @@ class Integration implements IntegrationInterface
 
     public static function reloadWork(bool $isTaskWork): bool
     {
-        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
-        $temp = "{$baseDir}burner_swoole_master.tmp";
+        $temp = self::getTempFilePath("burner_swoole_master.tmp");
         $result = false;
         if(is_file($temp)){
             $pid = file_get_contents($temp);
