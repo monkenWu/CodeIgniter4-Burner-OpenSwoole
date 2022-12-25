@@ -22,7 +22,7 @@ composer require monken/codeigniter4-burner-OpenSwoole
 
 Initialize Server files using built-in commands in the library.
 
-The 'basic' parameter will initialize the normal http server configuration file, and if the 'websocket' parameter is used, it will initialize the websocket-specific configuration file.
+The `basic` parameter will initialize the normal http server configuration file, and if the `websocket` parameter is used, it will initialize the websocket-specific configuration file.
 
 ```
 php spark burner:init OpenSwoole [basic or websocket]
@@ -34,6 +34,16 @@ When you do not pass any parameters, it will be preset to start the server.
 
 ```
 php spark burner:start OpenSwoole
+```
+
+### daemon mode
+
+Let OpenSwoole work in the background.
+
+When you run the server with this option, Burner will ignore the Automatic reload setting.
+
+```
+php spark burner:start OpenSwoole daemon
 ```
 
 ### stop server
@@ -124,9 +134,7 @@ Burner offers two types of Reload, which you can switch between by adjusting `au
 
 ### Developing and debugging in a environment with only one Worker
 
-Since the OpenSwoole and Workerman has fundamentally difference with other server software(i.e. Nginx, Apache), every Codeigniter4 will persist inside RAMs as the form of Worker, HTTP requests will reuse these Workers to process. Hence, we have better develop and test stability under the circumstance with only one Worker to prove it can also work properly under serveral Workers in the formal environment.
-
-#### OpenSwoole
+Since the OpenSwoole has fundamentally difference with other server software(i.e. Nginx, Apache), every Codeigniter4 will persist inside RAMs as the form of Worker, HTTP requests will reuse these Workers to process. Hence, we have better develop and test stability under the circumstance with only one Worker to prove it can also work properly under serveral Workers in the formal environment.
 
 You can reference the `app/Config/OpenSwoole.php` settings below to lower the amount of Worker to the minimum:
 
