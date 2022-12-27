@@ -12,6 +12,7 @@ use CodeIgniter\Events\Events;
 use Exception;
 use Imefisto\PsrSwoole\ResponseMerger;
 use Imefisto\PsrSwoole\ServerRequest as PsrRequest;
+use Monken\CIBurner\OpenSwoole\Cache\SwooleTable;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ServerRequestInterface;
 use Swoole\Http\Request;
@@ -197,6 +198,11 @@ if(isset($opt['s'])){
     $openSwooleConfig->config['daemonize'] = ($opt['s'] === 'daemon');
 }
 
+//handle cache
+if($openSwooleConfig->fastCache){
+    $swooleTable = new SwooleTable($openSwooleConfig);
+}
+
 $server           = new ($openSwooleConfig->httpDriver)(
     $openSwooleConfig->listeningIp,
     $openSwooleConfig->listeningPort,
@@ -206,7 +212,7 @@ $server           = new ($openSwooleConfig->httpDriver)(
 Worker::init($server);
 $server->set($openSwooleConfig->config);
 $server->on('Start', static function (Server $server) use ($openSwooleConfig, $isRestart) {
-    
+
     Integration::writeMasterPid($server->master_pid);
 
     if($isRestart === false){
@@ -235,6 +241,10 @@ $server->on('Start', static function (Server $server) use ($openSwooleConfig, $i
         });
     }
 
+    if($openSwooleConfig->fastCache){
+        SwooleTable::instance()->initTtlRecycler();
+    }    
+
     $openSwooleConfig->serverStart($server);
 });
 $openSwooleConfig->server($server);
@@ -246,4 +256,5 @@ if($isDaemonize){
         PHP_EOL 
     ));    
 }
+
 $server->start();

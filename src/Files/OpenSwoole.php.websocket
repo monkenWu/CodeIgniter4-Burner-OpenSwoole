@@ -68,6 +68,14 @@ class OpenSwoole extends BaseConfig
         'log_level'             => 0,
         'log_file'              => '/app/dev/writable/logs/OpenSwoole.log',
     ];
+    
+    /**
+     * Whether to open the Key/Value Cache provided by Burner.
+     * Shared high-speed caching with Swoole-Table implementation.
+     * 
+     * @var boolean
+     */
+    public $fastCache = true;
 
     /**
      * Auto-scan changed files

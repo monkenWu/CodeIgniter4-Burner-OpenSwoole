@@ -69,6 +69,14 @@ class OpenSwoole extends BaseConfig
     ];
 
     /**
+     * Whether to open the Key/Value Cache provided by Burner.
+     * Shared high-speed caching with Swoole-Table implementation.
+     * 
+     * @var boolean
+     */
+    public $fastCache = true;
+
+    /**
      * Auto-scan changed files
      *
      * @var bool
