@@ -24,6 +24,8 @@ class SwooleTable
      */
     protected static ?SwooleTable $instance = null;
 
+    protected static ?int $ttlTimerId = null;
+
     public function __construct(OpenSwoole $config)
     {
         if(is_null(self::$instance)){
@@ -61,7 +63,8 @@ class SwooleTable
      */
     public function initTtlRecycler($interval = 1000)
     {
-        Timer::tick($interval, function(){
+        if(is_int(self::$ttlTimerId)) return;
+        self::$ttlTimerId = Timer::tick($interval, function(){
             $currentTime = time();
             $delKeys = [];
             foreach (self::$table as $cacheItem) {
@@ -73,6 +76,12 @@ class SwooleTable
                 self::$table->del($key);
             }
         });
+    }
+
+    public function deleteTtlRecycler()
+    {
+        timer::clear(self::$ttlTimerId);
+        self::$ttlTimerId = null;
     }
 
     /**

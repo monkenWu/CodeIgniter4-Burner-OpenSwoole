@@ -151,7 +151,7 @@ class OpenSwooleHandler extends BaseHandler
     {
         $key = static::validateKey($key, $this->prefix);
 
-        return $this->table->delete($key);
+        return $this->table->del($key);
     }
 
     /**
@@ -203,10 +203,9 @@ class OpenSwooleHandler extends BaseHandler
     {
         $key   = static::validateKey($key, $this->prefix);
         $value = $this->get($key);
-
         if ($value !== null) {
             $time = Time::now()->getTimestamp();
-            $expire  = $this->table->get($key, 'type');
+            $expire  = $this->table->get($key, 'expire');
 
             return [
                 'expire' => $expire > 0 ? $expire : null,
@@ -214,7 +213,6 @@ class OpenSwooleHandler extends BaseHandler
                 'data'   => $value,
             ];
         }
-
         return null;
     }
 

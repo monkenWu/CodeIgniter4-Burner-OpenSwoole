@@ -21,6 +21,7 @@ use Swoole\Http\Server as HttpServer;
 use Swoole\Server;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server as WebSocketServer;
+use Swoole\Timer;
 
 class Worker
 {
@@ -233,7 +234,7 @@ $server->on('Start', static function (Server $server) use ($openSwooleConfig, $i
 
     $isDaemonize = $openSwooleConfig->config['daemonize'] ?? false;
     if($openSwooleConfig->autoReload && ($isDaemonize !== true)){
-        \OpenSwoole\Timer::tick(1000, function() use ($openSwooleConfig, $server){
+        Timer::tick(1000, function() use ($openSwooleConfig, $server){
             FileMonitor::checkFilesChange(
                 $openSwooleConfig,
                 $server
