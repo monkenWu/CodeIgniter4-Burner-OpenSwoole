@@ -7,7 +7,7 @@ use CodeIgniter\Exceptions\CriticalError;
 use CodeIgniter\I18n\Time;
 use Config\Cache;
 use Exception;
-use Swoole\Table;
+use OpenSwoole\Table;
 use Monken\CIBurner\OpenSwoole\Cache\SwooleTable;
 
 /**
@@ -150,7 +150,7 @@ class OpenSwooleHandler extends BaseHandler
     public function delete(string $key)
     {
         $key = static::validateKey($key, $this->prefix);
-
+        
         return $this->table->del($key);
     }
 
@@ -185,7 +185,7 @@ class OpenSwooleHandler extends BaseHandler
      */
     public function clean()
     {
-        return $this->swooleTable->initTable();
+        return $this->swooleTable->cleanTable();
     }
 
     /**

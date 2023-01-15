@@ -56,6 +56,13 @@ class SwooleTable
         self::$table->create();
     }
 
+    public function cleanTable()
+    {
+        foreach (self::$table as $cacheItem) {
+            self::$table->del($cacheItem['key']);
+        }
+    }
+
     /**
      * Init TTL-recycler timer
      * 
