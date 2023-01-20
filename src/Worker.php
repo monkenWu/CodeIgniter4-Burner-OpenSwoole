@@ -12,6 +12,7 @@ use CodeIgniter\Events\Events;
 use Exception;
 use Imefisto\PsrSwoole\ResponseMerger;
 use Imefisto\PsrSwoole\ServerRequest as PsrRequest;
+use Monken\CIBurner\OpenSwoole\Cache\SwooleTable;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ServerRequestInterface;
 use Swoole\Http\Request;
@@ -20,6 +21,7 @@ use Swoole\Http\Server as HttpServer;
 use Swoole\Server;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server as WebSocketServer;
+use Swoole\Timer;
 
 class Worker
 {
@@ -197,6 +199,11 @@ if(isset($opt['s'])){
     $openSwooleConfig->config['daemonize'] = ($opt['s'] === 'daemon');
 }
 
+//handle cache
+if($openSwooleConfig->fastCache){
+    $swooleTable = new SwooleTable($openSwooleConfig);
+}
+
 $server           = new ($openSwooleConfig->httpDriver)(
     $openSwooleConfig->listeningIp,
     $openSwooleConfig->listeningPort,
@@ -206,7 +213,7 @@ $server           = new ($openSwooleConfig->httpDriver)(
 Worker::init($server);
 $server->set($openSwooleConfig->config);
 $server->on('Start', static function (Server $server) use ($openSwooleConfig, $isRestart) {
-    
+
     Integration::writeMasterPid($server->master_pid);
 
     if($isRestart === false){
@@ -227,13 +234,17 @@ $server->on('Start', static function (Server $server) use ($openSwooleConfig, $i
 
     $isDaemonize = $openSwooleConfig->config['daemonize'] ?? false;
     if($openSwooleConfig->autoReload && ($isDaemonize !== true)){
-        \OpenSwoole\Timer::tick(1000, function() use ($openSwooleConfig, $server){
+        Timer::tick(1000, function() use ($openSwooleConfig, $server){
             FileMonitor::checkFilesChange(
                 $openSwooleConfig,
                 $server
             );
         });
     }
+
+    if($openSwooleConfig->fastCache){
+        SwooleTable::instance()->initTtlRecycler();
+    }    
 
     $openSwooleConfig->serverStart($server);
 });
@@ -246,4 +257,5 @@ if($isDaemonize){
         PHP_EOL 
     ));    
 }
+
 $server->start();
