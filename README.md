@@ -101,6 +101,53 @@ You can refer to the [OpenSwoole HTTP Server Settings](https://openswoole.com/do
 
 ## Development Suggestions
 
+### Fast Cache
+
+We provide [Swoole-Table](https://openswoole.com/docs/modules/swoole-table) based Key/Value caching. It implements the CodeIgniter4 Cache Interface, so you can use it out of the box in your projects, just like you know how!
+
+You can modify your `app/Config/OpenSwoole.php` configuration file, add the following settings and restart the server.
+
+```php
+/**
+ * Whether to open the Key/Value Cache provided by Burner.
+ * Shared high-speed caching with Swoole-Table implementation.
+ * 
+ * @var boolean
+ */
+public $fastCache = true;
+
+/**
+ * Buerner Swoole-Table Driver Settings
+ * 
+ * @var string[]
+ */
+public $fastCacheConfig = [
+    //Number of rows of the burner cache table
+    'tableSize' => 4096,   
+    //Key/value key Maximum length of string
+    'keyLength' => 1024,
+    //The maximum length of the key/value (if the save type is object, array, string).
+    'valueStringLength' => 1024
+];
+```
+
+Next, you need to open `app/Config/Cache` and add `Monken\CIBurner\BurnerCacheHandler` to the `Available Cache Handlers`.
+
+```php
+public $validHandlers = [
+    //hide
+    'burner' => \Monken\CIBurner\BurnerCacheHandler::class
+];
+```
+
+Finally, you have to switch from `Primary Handler` to Burner.
+
+```php
+public $handler = 'burner';
+```
+
+Now you can operate the Swoole-Table Cache provided by Burner in the same way as the [Cache Library](https://www.codeigniter.com/user_guide/libraries/caching.html) provided by CodeIgniter4. Please note that the Swoole-Table loses all data due to server restarts and is only a data sharing solution across workers.
+
 ### Automatic reload
 
 #### OpenSwoole

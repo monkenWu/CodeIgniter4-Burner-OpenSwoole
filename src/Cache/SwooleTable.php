@@ -2,7 +2,7 @@
 
 namespace Monken\CIBurner\OpenSwoole\Cache;
 
-use Config\OpenSwoole;
+use Config\OpenSwoole as Config;
 use Exception;
 use Swoole\Table;
 use Swoole\Timer;
@@ -26,8 +26,11 @@ class SwooleTable
 
     protected static ?int $ttlTimerId = null;
 
-    public function __construct(OpenSwoole $config)
+    protected Config $config;
+
+    public function __construct(Config $config)
     {
+        $this->config = $config;
         if(is_null(self::$instance)){
             self::$instance = $this;
             $this->initTable();
@@ -45,10 +48,9 @@ class SwooleTable
             self::$table->destroy();
             self::$table = null;
         }
-
-        self::$table = new Table(40960);
-        self::$table->column('key', Table::TYPE_STRING, 1024);
-        self::$table->column('value', Table::TYPE_STRING, 1024);
+        self::$table = new Table($this->config->fastCacheConfig['tableSize']);
+        self::$table->column('key', Table::TYPE_STRING, $this->config->fastCacheConfig['keyLength']);
+        self::$table->column('value', Table::TYPE_STRING, $this->config->fastCacheConfig['valueStringLength']);
         self::$table->column('value_int', Table::TYPE_INT);
         self::$table->column('value_double', Table::TYPE_FLOAT);
         self::$table->column('type', Table::TYPE_STRING, 10);
