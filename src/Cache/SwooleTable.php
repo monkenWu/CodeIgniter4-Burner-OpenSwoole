@@ -2,7 +2,7 @@
 
 namespace Monken\CIBurner\OpenSwoole\Cache;
 
-use Config\OpenSwoole;
+use Config\OpenSwoole as Config;
 use Exception;
 use Swoole\Table;
 use Swoole\Timer;
@@ -24,8 +24,13 @@ class SwooleTable
      */
     protected static ?SwooleTable $instance = null;
 
-    public function __construct(OpenSwoole $config)
+    protected static ?int $ttlTimerId = null;
+
+    protected Config $config;
+
+    public function __construct(Config $config)
     {
+        $this->config = $config;
         if(is_null(self::$instance)){
             self::$instance = $this;
             $this->initTable();
@@ -43,15 +48,21 @@ class SwooleTable
             self::$table->destroy();
             self::$table = null;
         }
-
-        self::$table = new Table(40960);
-        self::$table->column('key', Table::TYPE_STRING, 1024);
-        self::$table->column('value', Table::TYPE_STRING, 1024);
+        self::$table = new Table($this->config->fastCacheConfig['tableSize']);
+        self::$table->column('key', Table::TYPE_STRING, $this->config->fastCacheConfig['keyLength']);
+        self::$table->column('value', Table::TYPE_STRING, $this->config->fastCacheConfig['valueStringLength']);
         self::$table->column('value_int', Table::TYPE_INT);
         self::$table->column('value_double', Table::TYPE_FLOAT);
         self::$table->column('type', Table::TYPE_STRING, 10);
         self::$table->column('expire', Table::TYPE_INT, 4);
         self::$table->create();
+    }
+
+    public function cleanTable()
+    {
+        foreach (self::$table as $cacheItem) {
+            self::$table->del($cacheItem['key']);
+        }
     }
 
     /**
@@ -61,7 +72,8 @@ class SwooleTable
      */
     public function initTtlRecycler($interval = 1000)
     {
-        Timer::tick($interval, function(){
+        if(is_int(self::$ttlTimerId)) return;
+        self::$ttlTimerId = Timer::tick($interval, function(){
             $currentTime = time();
             $delKeys = [];
             foreach (self::$table as $cacheItem) {
@@ -73,6 +85,12 @@ class SwooleTable
                 self::$table->del($key);
             }
         });
+    }
+
+    public function deleteTtlRecycler()
+    {
+        timer::clear(self::$ttlTimerId);
+        self::$ttlTimerId = null;
     }
 
     /**

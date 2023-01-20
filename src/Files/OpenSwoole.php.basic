@@ -74,7 +74,21 @@ class OpenSwoole extends BaseConfig
      * 
      * @var boolean
      */
-    public $fastCache = true;
+    public $fastCache = false;
+
+    /**
+     * Buerner Swoole-Table Driver Settings
+     * 
+     * @var string[]
+     */
+    public $fastCacheConfig = [
+        //Number of rows of the burner cache table
+        'tableSize' => 4096,   
+        //Key/value key Maximum length of string
+        'keyLength' => 1024,
+        //The maximum length of the key/value (if the save type is object, array, string).
+        'valueStringLength' => 1024
+    ];
 
     /**
      * Auto-scan changed files
