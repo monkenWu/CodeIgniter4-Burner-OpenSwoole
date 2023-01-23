@@ -2,7 +2,8 @@
 
 namespace Monken\CIBurner\OpenSwoole;
 
-use Swoole\Http\Server;
+use OpenSwoole\Http\Server;
+use OpenSwoole\WebSocket\Server as WebscoketServer;
 use Config\OpenSwoole;
 
 class FileMonitor
@@ -11,7 +12,7 @@ class FileMonitor
 
     public static function checkFilesChange(
         OpenSwoole $openSwooleConfig,
-        Server $server
+        Server|WebscoketServer $server
     ){
         $monitor_dir = $openSwooleConfig->autoReloadDir;
         $scanExtensions = $openSwooleConfig->autoReloadScanExtensions;
@@ -45,7 +46,7 @@ class FileMonitor
                 }else if($reloadMode == 'reload'){
                     $server->reload();
                     fwrite(STDOUT, sprintf(
-                        'Swoole workers is reload.%s',
+                        'Swoole workers are reload.%s',
                         PHP_EOL . PHP_EOL
                     ));
                 }

@@ -4,16 +4,16 @@ namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
 use Monken\CIBurner\OpenSwoole\Worker;
-use Swoole\Http\Request;
-use Swoole\Http\Response;
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server;
+use OpenSwoole\Http\Request;
+use OpenSwoole\Http\Response;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server;
 
 class OpenSwoole extends BaseConfig
 {
     /**
      * Swoole Http Driver.
-     * You can use Swoole\HTTP\Server or Swoole\WebSocket\Server .
+     * You can use OpenSwoole\Http\Server or OpenSwoole\WebSocket\Server .
      *
      * @var string
      */
