@@ -74,7 +74,6 @@ class Pool
             'queryParams'     => $psr7Request->getQueryParams(),
             'uploadedFiles'   => $psr7Request->getUploadedFiles(),
         ];
-        var_dump(serialize($data));
 
         return self::$table->set($fd, ['fd' => $fd, 'request' => serialize($data)]);
     }
