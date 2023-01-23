@@ -2,8 +2,11 @@
 
 namespace Monken\CIBurner\OpenSwoole;
 
-use Swoole\Http\Server;
 use Config\OpenSwoole;
+use OpenSwoole\Http\Server;
+use OpenSwoole\WebSocket\Server as WebscoketServer;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 class FileMonitor
 {
@@ -11,19 +14,19 @@ class FileMonitor
 
     public static function checkFilesChange(
         OpenSwoole $openSwooleConfig,
-        Server $server
-    ){
-        $monitor_dir = $openSwooleConfig->autoReloadDir;
+        Server|WebscoketServer $server
+    ) {
+        $monitor_dir    = $openSwooleConfig->autoReloadDir;
         $scanExtensions = $openSwooleConfig->autoReloadScanExtensions;
-        $reloadMode = $openSwooleConfig->autoReloadMode;
+        $reloadMode     = $openSwooleConfig->autoReloadMode;
 
-        if (is_null(self::$lastMtime)) {
+        if (null === self::$lastMtime) {
             self::$lastMtime = time();
         }
 
         // recursive traversal directory
-        $dir_iterator = new \RecursiveDirectoryIterator($monitor_dir);
-        $iterator     = new \RecursiveIteratorIterator($dir_iterator);
+        $dir_iterator = new RecursiveDirectoryIterator($monitor_dir);
+        $iterator     = new RecursiveIteratorIterator($dir_iterator);
 
         foreach ($iterator as $file) {
             // only check php files
@@ -37,15 +40,15 @@ class FileMonitor
                     '%s Change detected, reloading... ',
                     $file
                 ));
-                $forceRestart = $openSwooleConfig->mode == SWOOLE_BASE && (int)$openSwooleConfig->config['worker_num'] == 1;
-                if($reloadMode == 'restart' || $forceRestart){
+                $forceRestart = $openSwooleConfig->mode === SWOOLE_BASE && (int) $openSwooleConfig->config['worker_num'] === 1;
+                if ($reloadMode === 'restart' || $forceRestart) {
                     Integration::writeRestartSignal();
                     $mPid = $server->master_pid;
-                    exec("kill {$mPid}");    
-                }else if($reloadMode == 'reload'){
+                    exec("kill {$mPid}");
+                } elseif ($reloadMode === 'reload') {
                     $server->reload();
                     fwrite(STDOUT, sprintf(
-                        'Swoole workers is reload.%s',
+                        'Swoole workers are reload.%s',
                         PHP_EOL . PHP_EOL
                     ));
                 }

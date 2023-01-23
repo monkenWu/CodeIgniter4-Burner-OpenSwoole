@@ -2,15 +2,15 @@
 
 namespace Monken\CIBurner\OpenSwoole;
 
-use Monken\CIBurner\IntegrationInterface;
 use CodeIgniter\CLI\CLI;
+use Monken\CIBurner\IntegrationInterface;
 
 class Integration implements IntegrationInterface
 {
     public function initServer(string $configType = 'basic', string $frontLoader = '')
     {
         $allowConfigType = ['basic', 'websocket'];
-        if(in_array($configType, $allowConfigType) == false){
+        if (in_array($configType, $allowConfigType, true) === false) {
             CLI::write(
                 CLI::color(
                     sprintf(
@@ -22,6 +22,7 @@ class Integration implements IntegrationInterface
                 )
             );
             echo PHP_EOL;
+
             exit;
         }
 
@@ -41,25 +42,28 @@ class Integration implements IntegrationInterface
 
     public function startServer(string $frontLoader, string $commands = '')
     {
-        if($commands === 'daemon'){
+        if ($commands === 'daemon') {
             $commands = '-s=daemon';
         }
 
-        if($commands === 'stop'){
+        if ($commands === 'stop') {
             self::stopServer();
             CLI::write('The OpenSwoole server is stop.');
+
             return;
         }
 
-        if($commands === 'reload worker'){
+        if ($commands === 'reload worker') {
             self::reloadWork(false);
             CLI::write('The OpenSwoole server workers is reload.');
+
             return;
         }
 
-        if($commands === 'reload task_worker'){
+        if ($commands === 'reload task_worker') {
             self::reloadWork(true);
             CLI::write('The OpenSwoole server task-workers is reload.');
+
             return;
         }
 
@@ -67,75 +71,79 @@ class Integration implements IntegrationInterface
         $workerPath = $nowDir . DIRECTORY_SEPARATOR . 'Worker.php';
         $start      = popen("php {$workerPath} -f={$frontLoader} {$commands}", 'w');
         pclose($start);
-        if(self::needRestart()){
+        if (self::needRestart()) {
             $this->startServer($frontLoader, '-r=restart');
-        }else{
+        } else {
             echo PHP_EOL;
         }
     }
 
     protected static function getTempFilePath(string $fileName): string
     {
-        $nowDir     = __DIR__;
+        $nowDir      = __DIR__;
         $projectHash = substr(sha1($nowDir), 0, 5);
-        $baseDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
-        $result = sprintf('%s%s_%s', $baseDir, $projectHash, $fileName);
-        return $result;
+        $baseDir     = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
+
+        return sprintf('%s%s_%s', $baseDir, $projectHash, $fileName);
     }
 
     public static function writeMasterPid(int $pid)
     {
-        $temp = self::getTempFilePath("burner_swoole_master.tmp");
-        if(is_file($temp)) unlink($temp);
+        $temp = self::getTempFilePath('burner_swoole_master.tmp');
+        if (is_file($temp)) {
+            unlink($temp);
+        }
         file_put_contents($temp, $pid);
     }
 
     public static function writeRestartSignal()
     {
-        $temp = self::getTempFilePath("burner_swoole_restart.tmp");
+        $temp = self::getTempFilePath('burner_swoole_restart.tmp');
         file_put_contents($temp, 'restart');
     }
 
-    public static function needRestart() : bool
+    public static function needRestart(): bool
     {
-        $temp = self::getTempFilePath("burner_swoole_restart.tmp");
+        $temp   = self::getTempFilePath('burner_swoole_restart.tmp');
         $result = false;
-        if(is_file($temp)){
+        if (is_file($temp)) {
             $text = file_get_contents($temp);
-            if($text == 'restart'){
+            if ($text === 'restart') {
                 $result = true;
             }
             unlink($temp);
         }
+
         return $result;
     }
 
     public static function stopServer(): bool
     {
-        $temp = self::getTempFilePath("burner_swoole_master.tmp");
+        $temp   = self::getTempFilePath('burner_swoole_master.tmp');
         $result = false;
-        if(is_file($temp)){
-            $pid = file_get_contents($temp);
-            $kill      = popen("kill -SIGTERM {$pid}", 'w');
+        if (is_file($temp)) {
+            $pid  = file_get_contents($temp);
+            $kill = popen("kill -TERM {$pid}", 'w');
             pclose($kill);
             $result = true;
             unlink($temp);
         }
+
         return $result;
     }
 
     public static function reloadWork(bool $isTaskWork): bool
     {
-        $temp = self::getTempFilePath("burner_swoole_master.tmp");
+        $temp   = self::getTempFilePath('burner_swoole_master.tmp');
         $result = false;
-        if(is_file($temp)){
-            $pid = file_get_contents($temp);
+        if (is_file($temp)) {
+            $pid    = file_get_contents($temp);
             $signal = $isTaskWork ? '-USR2' : '-USR1';
-            $kill      = popen("kill {$signal} {$pid}", 'w');
+            $kill   = popen("kill {$signal} {$pid}", 'w');
             pclose($kill);
             $result = true;
         }
+
         return $result;
     }
-
 }

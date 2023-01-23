@@ -1,16 +1,16 @@
 # CodeIgniter4-Burner-OpenSwoole
 
-
 This Library is the OpenSwoole Driver for [CodeIgniter4 Burner](https://github.com/monkenWu/CodeIgniter4-Burner).
 
 ## Install
 
 ### Prerequisites
 1. CodeIgniter Framework 4.2.0^
-2. Composer
-3. PHP8^
-4. [OpenSwoole Pre Requisites](https://openswoole.com/docs/get-started/prerequisites)
-5. [How to Install OpenSwoole](https://openswoole.com/docs/get-started/installation)
+2. CodeIgniter4-Burner 0.3.2^
+3. Composer
+4. PHP8^
+5. OpenSwoole 22^, [OpenSwoole Pre Requisites](https://openswoole.com/docs/get-started/prerequisites)
+6. [How to Install OpenSwoole](https://openswoole.com/docs/get-started/installation)
 
 ### Composer Install
 
@@ -63,7 +63,6 @@ php spark burner:start OpenSwoole reload task_worker
 ```
 
 ## OpenSwoole Server Settings
-
 
 The server settings are all in the `app/Config` directory `OpenSwoole.php`. The default file will look like this:
 

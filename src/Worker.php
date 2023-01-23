@@ -10,18 +10,19 @@ define('BURNER_DRIVER', 'OpenSwoole');
 use CodeIgniter\Config\Factories;
 use CodeIgniter\Events\Events;
 use Exception;
-use Imefisto\PsrSwoole\ResponseMerger;
-use Imefisto\PsrSwoole\ServerRequest as PsrRequest;
 use Monken\CIBurner\OpenSwoole\Cache\SwooleTable;
+use Monken\CIBurner\OpenSwoole\Psr\ResponseMerger;
+use Monken\CIBurner\OpenSwoole\Psr\ServerRequest as PsrRequest;
+use Monken\CIBurner\OpenSwoole\Websocket\Pool as WebsocketPool;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use OpenSwoole\Http\Request;
+use OpenSwoole\Http\Response;
+use OpenSwoole\Http\Server as HttpServer;
+use OpenSwoole\Server;
+use OpenSwoole\Timer;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server as WebSocketServer;
 use Psr\Http\Message\ServerRequestInterface;
-use Swoole\Http\Request;
-use Swoole\Http\Response;
-use Swoole\Http\Server as HttpServer;
-use Swoole\Server;
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server as WebSocketServer;
-use Swoole\Timer;
 
 class Worker
 {
@@ -31,13 +32,6 @@ class Worker
     protected static ResponseMerger $responseMerger;
     protected static HttpServer|WebSocketServer $server;
     protected static ?Frame $frame = null;
-
-    /**
-     * Websocket Request Pool
-     *
-     * @var array<string,\Swoole\Http\Request>
-     */
-    protected static array $websocketRequestPool = [];
 
     /**
      * Init Worker
@@ -55,8 +49,6 @@ class Worker
 
     /**
      * get OpenSwoole Server Instance
-     *
-     * @return \Swoole\Http\Server|Swoole\WebSocket\Server
      */
     public static function getServer(): HttpServer|WebSocketServer
     {
@@ -73,7 +65,7 @@ class Worker
     {
         $response = \Monken\CIBurner\App::run(self::requestFactory($swooleRequest));
 
-        self::$responseMerger->toSwoole(
+        self::$responseMerger->toOpenSwoole(
             $response,
             $swooleResponse
         )->end();
@@ -90,7 +82,7 @@ class Worker
      */
     public static function setWebsocket(Request $swooleRequest)
     {
-        self::$websocketRequestPool['fd' . $swooleRequest->fd] = $swooleRequest;
+        WebsocketPool::instance()->setRequest($swooleRequest->fd, $swooleRequest);
     }
 
     /**
@@ -100,7 +92,7 @@ class Worker
      */
     public static function unsetWebsocket(int $fd)
     {
-        unset(self::$websocketRequestPool['fd' . $fd]);
+        WebsocketPool::instance()->deleteRequest($fd);
     }
 
     /**
@@ -111,10 +103,10 @@ class Worker
      */
     public static function websocketProcesser(Frame $frame)
     {
-        if ($websocketRequest = (self::$websocketRequestPool['fd' . $frame->fd] ?? false)) {
+        $websocketRequest = WebsocketPool::instance()->getRequest($frame->fd);
+        if ($websocketRequest !== null) {
             self::$frame = $frame;
-            $psr7Request = self::requestFactory($websocketRequest);
-            \Monken\CIBurner\App::run($psr7Request, true);
+            \Monken\CIBurner\App::run($websocketRequest, true);
             \Monken\CIBurner\App::clean();
             self::$frame = null;
         }
@@ -193,18 +185,22 @@ class Worker
 /** @var \Config\OpenSwoole */
 $openSwooleConfig = Factories::config('OpenSwoole');
 
-//handle command parameters
-$isRestart  = $opt['r'] ?? false;
-if(isset($opt['s'])){
+// handle command parameters
+$isRestart = $opt['r'] ?? false;
+if (isset($opt['s'])) {
     $openSwooleConfig->config['daemonize'] = ($opt['s'] === 'daemon');
 }
 
-//handle cache
-if($openSwooleConfig->fastCache){
+// handle cache
+if ($openSwooleConfig->fastCache) {
     $swooleTable = new SwooleTable($openSwooleConfig);
 }
+// handle websocket pool
+if ($openSwooleConfig->httpDriver === 'OpenSwoole\WebSocket\Server') {
+    $websocketPool = new WebsocketPool($openSwooleConfig);
+}
 
-$server           = new ($openSwooleConfig->httpDriver)(
+$server = new ($openSwooleConfig->httpDriver)(
     $openSwooleConfig->listeningIp,
     $openSwooleConfig->listeningPort,
     $openSwooleConfig->mode,
@@ -213,28 +209,27 @@ $server           = new ($openSwooleConfig->httpDriver)(
 Worker::init($server);
 $server->set($openSwooleConfig->config);
 $server->on('Start', static function (Server $server) use ($openSwooleConfig, $isRestart) {
-
     Integration::writeMasterPid($server->master_pid);
 
-    if($isRestart === false){
+    if ($isRestart === false) {
         fwrite(STDOUT, sprintf(
             'Swoole %s server is started at %s:%d %s',
             explode('\\', $openSwooleConfig->httpDriver)[1],
             $openSwooleConfig->listeningIp,
             $openSwooleConfig->listeningPort,
             PHP_EOL . PHP_EOL
-        ));    
-    }else{
+        ));
+    } else {
         fwrite(STDOUT, sprintf(
             'Swoole %s server is restarted.%s',
             explode('\\', $openSwooleConfig->httpDriver)[1],
             PHP_EOL . PHP_EOL
-        ));    
+        ));
     }
 
     $isDaemonize = $openSwooleConfig->config['daemonize'] ?? false;
-    if($openSwooleConfig->autoReload && ($isDaemonize !== true)){
-        Timer::tick(1000, function() use ($openSwooleConfig, $server){
+    if ($openSwooleConfig->autoReload && ($isDaemonize !== true)) {
+        Timer::tick(1000, static function () use ($openSwooleConfig, $server) {
             FileMonitor::checkFilesChange(
                 $openSwooleConfig,
                 $server
@@ -242,20 +237,20 @@ $server->on('Start', static function (Server $server) use ($openSwooleConfig, $i
         });
     }
 
-    if($openSwooleConfig->fastCache){
+    if ($openSwooleConfig->fastCache) {
         SwooleTable::instance()->initTtlRecycler();
-    }    
+    }
 
     $openSwooleConfig->serverStart($server);
 });
 $openSwooleConfig->server($server);
 
 $isDaemonize = $openSwooleConfig->config['daemonize'] ?? false;
-if($isDaemonize){
+if ($isDaemonize) {
     fwrite(STDOUT, sprintf(
         'Swoole server in daemon mode. %s',
-        PHP_EOL 
-    ));    
+        PHP_EOL
+    ));
 }
 
 $server->start();

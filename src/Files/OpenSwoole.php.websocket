@@ -4,16 +4,16 @@ namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
 use Monken\CIBurner\OpenSwoole\Worker;
-use Swoole\Http\Request;
-use Swoole\Http\Response;
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server;
+use OpenSwoole\Http\Request;
+use OpenSwoole\Http\Response;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server;
 
 class OpenSwoole extends BaseConfig
 {
     /**
      * Swoole Http Driver.
-     * You can use Swoole\HTTP\Server or Swoole\WebSocket\Server .
+     * You can use OpenSwoole\Http\Server or OpenSwoole\WebSocket\Server .
      *
      * @var string
      */
@@ -63,12 +63,20 @@ class OpenSwoole extends BaseConfig
         'worker_num'            => 1,
         'daemonize'             => false,
         'max_request'           => 0,
-        'document_root'         => '/app/dev/public',
+        'document_root'         => '{{static_path}}',
         'enable_static_handler' => true,
         'log_level'             => 0,
-        'log_file'              => '/app/dev/writable/logs/OpenSwoole.log',
+        'log_file'              => '{{log_path}}',
     ];
     
+    /**
+     * Maximum number of connections that can be stored in the Websocket pool at the same time.
+     * It is recommended that this value be as large as memory allows.
+     * 
+     * @var int
+     */
+    public $websocketPoolSize = 10240;
+
     /**
      * Whether to open the Key/Value Cache provided by Burner.
      * Shared high-speed caching with Swoole-Table implementation.
@@ -158,6 +166,7 @@ class OpenSwoole extends BaseConfig
         });
 
         $server->on('close', static function (Server $server, int $fd) {
+            Worker::unsetWebsocket($fd);
             fwrite(STDOUT, sprintf(
                 "client-%d is closed\n",
                 $fd,

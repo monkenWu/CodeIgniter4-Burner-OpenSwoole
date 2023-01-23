@@ -8,7 +8,6 @@ use CodeIgniter\I18n\Time;
 use Config\Cache;
 use Exception;
 use OpenSwoole\Table;
-use Monken\CIBurner\OpenSwoole\Cache\SwooleTable;
 
 /**
  * Burner OpenSwoole cache handler
@@ -21,7 +20,7 @@ class OpenSwooleHandler extends BaseHandler
      * @var array
      */
     protected $config = [
-        'defaultTtl'  => 0,
+        'defaultTtl' => 0,
     ];
 
     /**
@@ -52,7 +51,7 @@ class OpenSwooleHandler extends BaseHandler
     {
         try {
             $this->swooleTable = SwooleTable::instance();
-            $this->table = $this->swooleTable->getTable();
+            $this->table       = $this->swooleTable->getTable();
         } catch (Exception $e) {
             throw new CriticalError('Cache: RedisException occurred with message (' . $e->getMessage() . ').');
         }
@@ -66,7 +65,7 @@ class OpenSwooleHandler extends BaseHandler
         $key  = static::validateKey($key, $this->prefix);
         $data = $this->table->get($key);
 
-        if (! isset($data['key'], $data['value'], $data['value_int'], $data['value_double'], $data['type'], $data['expire'] )) {
+        if (! isset($data['key'], $data['value'], $data['value_int'], $data['value_double'], $data['type'], $data['expire'])) {
             return null;
         }
 
@@ -99,15 +98,16 @@ class OpenSwooleHandler extends BaseHandler
      */
     public function save(string $key, $value, int $ttl = 60)
     {
-        $key = static::validateKey($key, $this->prefix);
+        $key     = static::validateKey($key, $this->prefix);
         $setData = [
-            'key'       => $key,
-            'value'     => '',
-            'value_int'     => 0,
-            'value_double'     => 0.0,
-            'type'      => '',
-            'expire'    => 0
+            'key'          => $key,
+            'value'        => '',
+            'value_int'    => 0,
+            'value_double' => 0.0,
+            'type'         => '',
+            'expire'       => 0,
         ];
+
         switch ($dataType = gettype($value)) {
             case 'array':
             case 'object':
@@ -127,7 +127,7 @@ class OpenSwooleHandler extends BaseHandler
                 break;
 
             case 'string':
-                $setData['value']  = $value;
+                $setData['value'] = $value;
                 break;
 
             case 'NULL':
@@ -135,9 +135,9 @@ class OpenSwooleHandler extends BaseHandler
             default:
                 return false;
         }
-        
-        $setData['type']  = $dataType;
-        $setData['expire']  = $ttl > 0 ? intval($ttl) + Time::now()->getTimestamp() : 0;
+
+        $setData['type']   = $dataType;
+        $setData['expire'] = $ttl > 0 ? (int) $ttl + Time::now()->getTimestamp() : 0;
 
         $result = $this->table->set($key, $setData);
 
@@ -150,7 +150,7 @@ class OpenSwooleHandler extends BaseHandler
     public function delete(string $key)
     {
         $key = static::validateKey($key, $this->prefix);
-        
+
         return $this->table->del($key);
     }
 
@@ -159,11 +159,12 @@ class OpenSwooleHandler extends BaseHandler
      */
     public function increment(string $key, int $offset = 1)
     {
-        $key = static::validateKey($key, $this->prefix);
+        $key  = static::validateKey($key, $this->prefix);
         $type = $this->table->get($key, 'type');
-        if($type !== 'integer'){
+        if ($type !== 'integer') {
             return false;
         }
+
         return $this->table->incr($key, 'value_int', $offset);
     }
 
@@ -172,11 +173,12 @@ class OpenSwooleHandler extends BaseHandler
      */
     public function decrement(string $key, int $offset = 1)
     {
-        $key = static::validateKey($key, $this->prefix);
+        $key  = static::validateKey($key, $this->prefix);
         $type = $this->table->get($key, 'type');
-        if($type !== 'integer'){
+        if ($type !== 'integer') {
             return false;
         }
+
         return $this->table->decr($key, 'value_int', $offset);
     }
 
@@ -204,8 +206,8 @@ class OpenSwooleHandler extends BaseHandler
         $key   = static::validateKey($key, $this->prefix);
         $value = $this->get($key);
         if ($value !== null) {
-            $time = Time::now()->getTimestamp();
-            $expire  = $this->table->get($key, 'expire');
+            $time   = Time::now()->getTimestamp();
+            $expire = $this->table->get($key, 'expire');
 
             return [
                 'expire' => $expire > 0 ? $expire : null,
@@ -213,6 +215,7 @@ class OpenSwooleHandler extends BaseHandler
                 'data'   => $value,
             ];
         }
+
         return null;
     }
 
