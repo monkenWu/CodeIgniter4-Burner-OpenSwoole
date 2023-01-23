@@ -70,6 +70,14 @@ class OpenSwoole extends BaseConfig
     ];
     
     /**
+     * Maximum number of connections that can be stored in the Websocket pool at the same time.
+     * It is recommended that this value be as large as memory allows.
+     * 
+     * @var int
+     */
+    public $websocketPoolSize = 10240;
+
+    /**
      * Whether to open the Key/Value Cache provided by Burner.
      * Shared high-speed caching with Swoole-Table implementation.
      * 
