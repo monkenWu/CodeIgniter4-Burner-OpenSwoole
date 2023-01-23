@@ -10,18 +10,18 @@ define('BURNER_DRIVER', 'OpenSwoole');
 use CodeIgniter\Config\Factories;
 use CodeIgniter\Events\Events;
 use Exception;
-use Imefisto\PsrSwoole\ResponseMerger;
-use Imefisto\PsrSwoole\ServerRequest as PsrRequest;
+use Monken\CIBurner\OpenSwoole\Psr\ResponseMerger;
+use Monken\CIBurner\OpenSwoole\Psr\ServerRequest as PsrRequest;
 use Monken\CIBurner\OpenSwoole\Cache\SwooleTable;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ServerRequestInterface;
-use Swoole\Http\Request;
-use Swoole\Http\Response;
-use Swoole\Http\Server as HttpServer;
-use Swoole\Server;
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server as WebSocketServer;
-use Swoole\Timer;
+use OpenSwoole\Http\Request;
+use OpenSwoole\Http\Response;
+use OpenSwoole\Http\Server as HttpServer;
+use OpenSwoole\Server;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server as WebSocketServer;
+use OpenSwoole\Timer;
 
 class Worker
 {
@@ -73,7 +73,7 @@ class Worker
     {
         $response = \Monken\CIBurner\App::run(self::requestFactory($swooleRequest));
 
-        self::$responseMerger->toSwoole(
+        self::$responseMerger->toOpenSwoole(
             $response,
             $swooleResponse
         )->end();

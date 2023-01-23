@@ -4,8 +4,8 @@ namespace Monken\CIBurner\OpenSwoole\Cache;
 
 use Config\OpenSwoole as Config;
 use Exception;
-use Swoole\Table;
-use Swoole\Timer;
+use OpenSwoole\Table;
+use OpenSwoole\Timer;
 
 class SwooleTable
 {
@@ -13,7 +13,7 @@ class SwooleTable
     /**
      * swoole table shared instance
      *
-     * @var \Swoole\Table|null
+     * @var \OpenSwoole\Table|null
      */
     protected static ?Table $table = null;
 
