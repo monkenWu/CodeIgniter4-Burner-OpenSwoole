@@ -9,11 +9,8 @@ use OpenSwoole\Timer;
 
 class SwooleTable
 {
-
     /**
      * swoole table shared instance
-     *
-     * @var \OpenSwoole\Table|null
      */
     protected static ?Table $table = null;
 
@@ -25,13 +22,12 @@ class SwooleTable
     protected static ?SwooleTable $instance = null;
 
     protected static ?int $ttlTimerId = null;
-
     protected Config $config;
 
     public function __construct(Config $config)
     {
         $this->config = $config;
-        if(is_null(self::$instance)){
+        if (null === self::$instance) {
             self::$instance = $this;
             $this->initTable();
         }
@@ -44,7 +40,7 @@ class SwooleTable
      */
     public function initTable()
     {
-        if(is_null(self::$table) === false){
+        if ((null === self::$table) === false) {
             self::$table->destroy();
             self::$table = null;
         }
@@ -67,20 +63,24 @@ class SwooleTable
 
     /**
      * Init TTL-recycler timer
-     * 
+     *
      * @param int $interval
      */
     public function initTtlRecycler($interval = 1000)
     {
-        if(is_int(self::$ttlTimerId)) return;
-        self::$ttlTimerId = Timer::tick($interval, function(){
+        if (is_int(self::$ttlTimerId)) {
+            return;
+        }
+        self::$ttlTimerId = Timer::tick($interval, static function () {
             $currentTime = time();
-            $delKeys = [];
+            $delKeys     = [];
+
             foreach (self::$table as $cacheItem) {
                 if ($cacheItem['expire'] !== 0 && $cacheItem['expire'] < $currentTime) {
                     $delKeys[] = $cacheItem['key'];
                 }
             }
+
             foreach ($delKeys as $key) {
                 self::$table->del($key);
             }
@@ -95,8 +95,6 @@ class SwooleTable
 
     /**
      * Get Swoole Table Shared Instance
-     *
-     * @return Table
      */
     public function getTable(): Table
     {
@@ -110,10 +108,10 @@ class SwooleTable
      */
     public static function instance(): SwooleTable
     {
-        if(self::$table === null){
+        if (self::$table === null) {
             throw new Exception('You must open $fastCache in "\Config\OpenSwoole".');
         }
+
         return self::$instance;
     }
-
 }

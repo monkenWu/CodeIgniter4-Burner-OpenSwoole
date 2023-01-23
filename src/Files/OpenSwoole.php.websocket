@@ -63,10 +63,10 @@ class OpenSwoole extends BaseConfig
         'worker_num'            => 1,
         'daemonize'             => false,
         'max_request'           => 0,
-        'document_root'         => '/app/dev/public',
+        'document_root'         => '{{static_path}}',
         'enable_static_handler' => true,
         'log_level'             => 0,
-        'log_file'              => '/app/dev/writable/logs/OpenSwoole.log',
+        'log_file'              => '{{log_path}}',
     ];
     
     /**
@@ -158,6 +158,7 @@ class OpenSwoole extends BaseConfig
         });
 
         $server->on('close', static function (Server $server, int $fd) {
+            Worker::unsetWebsocket($fd);
             fwrite(STDOUT, sprintf(
                 "client-%d is closed\n",
                 $fd,

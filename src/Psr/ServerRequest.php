@@ -1,20 +1,21 @@
 <?php
+
 namespace Monken\CIBurner\OpenSwoole\Psr;
 
+use InvalidArgumentException;
 use OpenSwoole\Http\Request as SwooleRequest;
-use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UriFactoryInterface;
 
 /**
  * OpenSwoole Psr Server Request
- * 
+ *
  * Convert the Swoole namespace to OpenSwoole.
  * Fork from imefisto/psr-swoole-native repository.
- * 
- * @author imefisto
- * @link https://github.com/imefisto/psr-swoole-native
+ *
+ * @see https://github.com/imefisto/psr-swoole-native
  */
 class ServerRequest extends Request implements ServerRequestInterface
 {
@@ -42,8 +43,9 @@ class ServerRequest extends Request implements ServerRequestInterface
 
     public function withCookieParams(array $cookies)
     {
-        $new = clone $this;
+        $new          = clone $this;
         $new->cookies = $cookies;
+
         return $new;
     }
 
@@ -54,8 +56,9 @@ class ServerRequest extends Request implements ServerRequestInterface
 
     public function withQueryParams(array $query)
     {
-        $new = clone $this;
+        $new        = clone $this;
         $new->query = $query;
+
         return $new;
     }
 
@@ -82,8 +85,9 @@ class ServerRequest extends Request implements ServerRequestInterface
 
     public function withUploadedFiles(array $uploadedFiles)
     {
-        $new = clone $this;
+        $new        = clone $this;
         $new->files = $uploadedFiles;
+
         return $new;
     }
 
@@ -92,8 +96,8 @@ class ServerRequest extends Request implements ServerRequestInterface
         if (property_exists($this, 'parsedBody')) {
             return $this->parsedBody;
         }
-        
-        if (!empty($this->swooleRequest->post)) {
+
+        if (! empty($this->swooleRequest->post)) {
             return $this->swooleRequest->post;
         }
 
@@ -102,12 +106,13 @@ class ServerRequest extends Request implements ServerRequestInterface
 
     public function withParsedBody($data)
     {
-        if (!\is_object($data) && !\is_array($data) && !\is_null($data)) {
-            throw new \InvalidArgumentException('Unsupported argument type');
+        if (! \is_object($data) && ! \is_array($data) && null !== $data) {
+            throw new InvalidArgumentException('Unsupported argument type');
         }
 
-        $new = clone $this;
+        $new             = clone $this;
         $new->parsedBody = $data;
+
         return $new;
     }
 
@@ -123,8 +128,9 @@ class ServerRequest extends Request implements ServerRequestInterface
 
     public function withAttribute($name, $value)
     {
-        $new = clone $this;
+        $new                    = clone $this;
         $new->attributes[$name] = $value;
+
         return $new;
     }
 
@@ -132,6 +138,7 @@ class ServerRequest extends Request implements ServerRequestInterface
     {
         $new = clone $this;
         unset($new->attributes[$name]);
+
         return $new;
     }
 }

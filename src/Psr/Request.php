@@ -1,25 +1,26 @@
 <?php
+
 namespace Monken\CIBurner\OpenSwoole\Psr;
 
+use InvalidArgumentException;
 use OpenSwoole\Http\Request as SwooleRequest;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\UriFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
-use Psr\Http\Message\UriInterface;
 use Psr\Http\Message\StreamInterface;
+use Psr\Http\Message\UriFactoryInterface;
+use Psr\Http\Message\UriInterface;
 
 /**
  * OpenSwoole Psr Request
- * 
+ *
  * Convert the Swoole namespace to OpenSwoole.
  * Fork from imefisto/psr-swoole-native repository.
- * 
- * @author imefisto
- * @link https://github.com/imefisto/psr-swoole-native
+ *
+ * @see https://github.com/imefisto/psr-swoole-native
  */
 class Request implements RequestInterface
 {
-    private $headers = null;
+    private $headers;
 
     public function __construct(
         SwooleRequest $swooleRequest,
@@ -27,24 +28,22 @@ class Request implements RequestInterface
         StreamFactoryInterface $streamFactory
     ) {
         $this->swooleRequest = $swooleRequest;
-        $this->uriFactory = $uriFactory;
+        $this->uriFactory    = $uriFactory;
         $this->streamFactory = $streamFactory;
     }
 
     public function getRequestTarget()
     {
-        return !empty($this->requestTarget)
+        return ! empty($this->requestTarget)
             ? $this->requestTarget
-            : ($this->requestTarget = $this->buildRequestTarget())
-            ;
+            : ($this->requestTarget = $this->buildRequestTarget());
     }
 
     private function buildRequestTarget()
     {
-        $queryString = !empty($this->swooleRequest->server['query_string'])
+        $queryString = ! empty($this->swooleRequest->server['query_string'])
             ? '?' . $this->swooleRequest->server['query_string']
-            : ''
-            ;
+            : '';
 
         return $this->swooleRequest->server['request_uri']
             . $queryString;
@@ -52,34 +51,35 @@ class Request implements RequestInterface
 
     public function withRequestTarget($requestTarget)
     {
-        $new = clone $this;
+        $new                = clone $this;
         $new->requestTarget = $requestTarget;
+
         return $new;
     }
 
     public function getMethod()
     {
-        return !empty($this->method)
+        return ! empty($this->method)
             ? $this->method
-            : ($this->method = $this->swooleRequest->server['request_method'])
-            ;
+            : ($this->method = $this->swooleRequest->server['request_method']);
     }
 
     public function withMethod($method)
     {
-        $validMethods = ['options','get','head','post','put','delete','trace','connect'];
-        if (!in_array(strtolower($method), $validMethods)) {
-            throw new \InvalidArgumentException('Invalid HTTP method');
+        $validMethods = ['options', 'get', 'head', 'post', 'put', 'delete', 'trace', 'connect'];
+        if (! in_array(strtolower($method), $validMethods, true)) {
+            throw new InvalidArgumentException('Invalid HTTP method');
         }
 
-        $new = clone $this;
+        $new         = clone $this;
         $new->method = $method;
+
         return $new;
     }
 
     public function getUri()
     {
-        if (!empty($this->uri)) {
+        if (! empty($this->uri)) {
             return $this->uri;
         }
 
@@ -90,10 +90,9 @@ class Request implements RequestInterface
             $host .= ':80';
         }
 
-        $uri = '//' . (!empty($userInfo) ? $userInfo . '@' : '')
+        $uri = '//' . (! empty($userInfo) ? $userInfo . '@' : '')
             . $host
-            . $this->getRequestTarget()
-            ;
+            . $this->getRequestTarget();
 
         return $this->uri = $this->uriFactory->createUri(
             $uri
@@ -106,7 +105,8 @@ class Request implements RequestInterface
 
         if (strpos($authorization, 'Basic') === 0) {
             $parts = explode(' ', $authorization);
-            return base64_decode($parts[1]);
+
+            return base64_decode($parts[1], true);
         }
 
         return null;
@@ -114,19 +114,18 @@ class Request implements RequestInterface
 
     public function withUri(UriInterface $uri, $preserveHost = false)
     {
-        $new = clone $this;
+        $new      = clone $this;
         $new->uri = $uri;
 
         return $new->shouldUpdateHostHeader($preserveHost)
             ? $new->withHeader('host', $uri->getHost())
-            : $new
-            ;
+            : $new;
     }
 
     private function shouldUpdateHostHeader($preserveHost)
     {
-        return !empty($this->uri->getHost())
-            && (!$preserveHost || !$this->hasHeader('host'));
+        return ! empty($this->uri->getHost())
+            && (! $preserveHost || ! $this->hasHeader('host'));
     }
 
     public function getProtocolVersion()
@@ -136,8 +135,9 @@ class Request implements RequestInterface
 
     public function withProtocolVersion($version)
     {
-        $new = clone $this;
+        $new           = clone $this;
         $new->protocol = $version;
+
         return $new;
     }
 
@@ -146,9 +146,8 @@ class Request implements RequestInterface
         $headers = is_array($this->headers)
             ? $this->headers
             : $this->swooleRequest->header;
-        return array_map(function($value) {
-            return is_array($value) ? $value : [$value];
-        }, $headers);
+
+        return array_map(static fn ($value) => is_array($value) ? $value : [$value], $headers);
     }
 
     public function hasHeader($name)
@@ -156,11 +155,11 @@ class Request implements RequestInterface
         $this->initHeadersList();
 
         foreach ($this->headers as $key => $value) {
-            if (strtolower($name) == strtolower($key)) {
+            if (strtolower($name) === strtolower($key)) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -175,20 +174,19 @@ class Request implements RequestInterface
 
     public function getHeader($name)
     {
-        if (!$this->hasHeader($name)) {
+        if (! $this->hasHeader($name)) {
             return [];
         }
 
         foreach ($this->headers as $key => $value) {
-            if (strtolower($name) == strtolower($key)) {
+            if (strtolower($name) === strtolower($key)) {
                 return is_array($value)
                     ? $value
-                    : [$value]
-                    ;
+                    : [$value];
             }
         }
     }
-    
+
     public function getHeaderLine($name)
     {
         return \implode(',', $this->getHeader($name));
@@ -206,7 +204,7 @@ class Request implements RequestInterface
 
     public function withAddedHeader($name, $value)
     {
-        if (!$this->hasHeader($name)) {
+        if (! $this->hasHeader($name)) {
             return $this->withHeader($name, $value);
         }
 
@@ -217,7 +215,7 @@ class Request implements RequestInterface
         } else {
             $new->headers[$name] = [
                 $new->headers[$name],
-                $value
+                $value,
             ];
         }
 
@@ -228,13 +226,14 @@ class Request implements RequestInterface
     {
         $new = clone $this;
 
-        if (!$new->hasHeader($name)) {
+        if (! $new->hasHeader($name)) {
             return $new;
         }
 
         foreach ($new->headers as $key => $value) {
-            if (strtolower($name) == $key) {
+            if (strtolower($name) === $key) {
                 unset($new->headers[$key]);
+
                 return $new;
             }
         }
@@ -247,8 +246,9 @@ class Request implements RequestInterface
 
     public function withBody(StreamInterface $body)
     {
-        $new = clone $this;
+        $new       = clone $this;
         $new->body = $body;
+
         return $new;
     }
 }
