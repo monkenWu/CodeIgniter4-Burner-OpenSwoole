@@ -189,6 +189,7 @@ $openSwooleConfig = Factories::config('OpenSwoole');
 $isRestart = $opt['r'] ?? false;
 if (isset($opt['s'])) {
     $openSwooleConfig->config['daemonize'] = ($opt['s'] === 'daemon');
+    Integration::writeIsDaemon();
 }
 
 // handle cache

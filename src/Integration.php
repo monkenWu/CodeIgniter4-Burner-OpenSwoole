@@ -9,7 +9,7 @@ class Integration implements IntegrationInterface
 {
     public function initServer(string $configType = 'basic', string $frontLoader = '')
     {
-        $allowConfigType = ['basic', 'websocket'];
+        $allowConfigType = ['basic', 'http', 'websocket'];
         if (in_array($configType, $allowConfigType, true) === false) {
             CLI::write(
                 CLI::color(
@@ -26,6 +26,10 @@ class Integration implements IntegrationInterface
             exit;
         }
 
+        if ($configType === 'http') {
+            $configType = 'basic';
+        }
+
         $basePath   = ROOTPATH . 'app/Config' . DIRECTORY_SEPARATOR;
         $configPath = $basePath . 'OpenSwoole.php';
 
@@ -40,31 +44,10 @@ class Integration implements IntegrationInterface
         file_put_contents($configPath, $cnf);
     }
 
-    public function startServer(string $frontLoader, string $commands = '')
+    public function startServer(string $frontLoader, bool $daemon = false, string $commands = '')
     {
-        if ($commands === 'daemon') {
-            $commands = '-s=daemon';
-        }
-
-        if ($commands === 'stop') {
-            self::stopServer();
-            CLI::write('The OpenSwoole server is stop.');
-
-            return;
-        }
-
-        if ($commands === 'reload worker') {
-            self::reloadWork(false);
-            CLI::write('The OpenSwoole server workers is reload.');
-
-            return;
-        }
-
-        if ($commands === 'reload task_worker') {
-            self::reloadWork(true);
-            CLI::write('The OpenSwoole server task-workers is reload.');
-
-            return;
+        if ($daemon === true) {
+            $commands = '-s=daemon ' . $commands;
         }
 
         $nowDir     = __DIR__;
@@ -72,9 +55,93 @@ class Integration implements IntegrationInterface
         $start      = popen("php {$workerPath} -f={$frontLoader} {$commands}", 'w');
         pclose($start);
         if (self::needRestart()) {
-            $this->startServer($frontLoader, '-r=restart');
+            $this->startServer($frontLoader, $daemon, '-r=restart');
         } else {
             echo PHP_EOL;
+        }
+    }
+
+    public function stopServer(string $frontLoader, string $commands = '')
+    {
+        if (self::isDaemon()) {
+            CLI::write('[Daemon mode] Trying to stop the OpenSwoole server....' . PHP_EOL);
+        } else {
+            CLI::write('[Debug mode] Trying to stop the OpenSwoole server...');
+        }
+
+        $temp   = self::getTempFilePath('burner_swoole_master.tmp');
+        $result = false;
+        if (is_file($temp)) {
+            $pid  = file_get_contents($temp);
+            $kill = popen("kill -TERM {$pid}", 'w');
+            pclose($kill);
+            $result = true;
+            unlink($temp);
+        }
+
+        if ($result) {
+            CLI::write('The OpenSwoole server is stop.' . PHP_EOL);
+        } else {
+            CLI::write('There is no OpenSwoole server running.');
+        }
+    }
+
+    public function restartServer(string $frontLoader, string $commands = '')
+    {
+        if (self::isDaemon(false)) {
+            $this->stopServer($frontLoader);
+            CLI::write('The OpenSwoole server is restarting...');
+            $this->startServer($frontLoader, true);
+        } else {
+            self::writeRestartSignal();
+            $this->stopServer($frontLoader);
+            CLI::write('The OpenSwoole server is restarting...');
+        }
+    }
+
+    public function reloadServer(string $frontLoader, string $commands = '')
+    {
+        if ($commands === '') {
+            CLI::write('You must use the "mode" option like: "--mode [worker, task_worker]".');
+
+            return;
+        }
+
+        $allowTarget = ['worker', 'task_worker'];
+        if (in_array($commands, $allowTarget, true) === false) {
+            CLI::write(
+                CLI::color(
+                    sprintf(
+                        'Error mode! We only support: %s. The mode type you have entered is: %s.',
+                        implode(', ', $allowTarget),
+                        $commands
+                    ),
+                    'red'
+                )
+            );
+            echo PHP_EOL;
+
+            return;
+        }
+
+        $result = false;
+
+        if ($commands === 'worker') {
+            $result = self::reloadWorker(false);
+            if ($result) {
+                CLI::write('The OpenSwoole server workers is reload.');
+            }
+        }
+
+        if ($commands === 'task_worker') {
+            $result = self::reloadWorker(true);
+            if ($result) {
+                CLI::write('The OpenSwoole server task-workers is reload.');
+            }
+        }
+
+        if ($result === false) {
+            CLI::write('There is no OpenSwoole server running.');
         }
     }
 
@@ -85,6 +152,15 @@ class Integration implements IntegrationInterface
         $baseDir     = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
 
         return sprintf('%s%s_%s', $baseDir, $projectHash, $fileName);
+    }
+
+    public static function writeIsDaemon()
+    {
+        $temp = self::getTempFilePath('burner_swoole_daemon.tmp');
+        if (is_file($temp)) {
+            unlink($temp);
+        }
+        file_put_contents($temp, '');
     }
 
     public static function writeMasterPid(int $pid)
@@ -102,6 +178,20 @@ class Integration implements IntegrationInterface
         file_put_contents($temp, 'restart');
     }
 
+    public static function isDaemon(bool $unlink = true): bool
+    {
+        $temp   = self::getTempFilePath('burner_swoole_daemon.tmp');
+        $result = false;
+        if (is_file($temp)) {
+            $result = true;
+            if ($unlink) {
+                unlink($temp);
+            }
+        }
+
+        return $result;
+    }
+
     public static function needRestart(): bool
     {
         $temp   = self::getTempFilePath('burner_swoole_restart.tmp');
@@ -117,28 +207,13 @@ class Integration implements IntegrationInterface
         return $result;
     }
 
-    public static function stopServer(): bool
-    {
-        $temp   = self::getTempFilePath('burner_swoole_master.tmp');
-        $result = false;
-        if (is_file($temp)) {
-            $pid  = file_get_contents($temp);
-            $kill = popen("kill -TERM {$pid}", 'w');
-            pclose($kill);
-            $result = true;
-            unlink($temp);
-        }
-
-        return $result;
-    }
-
-    public static function reloadWork(bool $isTaskWork): bool
+    public static function reloadWorker(bool $isTaskWorker): bool
     {
         $temp   = self::getTempFilePath('burner_swoole_master.tmp');
         $result = false;
         if (is_file($temp)) {
             $pid    = file_get_contents($temp);
-            $signal = $isTaskWork ? '-USR2' : '-USR1';
+            $signal = $isTaskWorker ? '-USR2' : '-USR1';
             $kill   = popen("kill {$signal} {$pid}", 'w');
             pclose($kill);
             $result = true;

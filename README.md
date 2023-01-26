@@ -6,7 +6,7 @@ This Library is the OpenSwoole Driver for [CodeIgniter4 Burner](https://github.c
 
 ### Prerequisites
 1. CodeIgniter Framework 4.2.0^
-2. CodeIgniter4-Burner 0.3.2^
+2. CodeIgniter4-Burner 0.4.0^
 3. Composer
 4. PHP8^
 5. OpenSwoole 22^, [OpenSwoole Pre Requisites](https://openswoole.com/docs/get-started/prerequisites)
@@ -22,10 +22,10 @@ composer require monken/codeigniter4-burner-OpenSwoole
 
 Initialize Server files using built-in commands in the library.
 
-The `basic` parameter will initialize the normal http server configuration file, and if the `websocket` parameter is used, it will initialize the websocket-specific configuration file.
+The `http` parameter will initialize the normal http server configuration file, and if the `websocket` parameter is used, it will initialize the websocket-specific (including http) configuration file.
 
 ```
-php spark burner:init OpenSwoole [basic or websocket]
+php spark burner:init OpenSwoole [http or websocket]
 ```
 
 ## Command
@@ -33,8 +33,16 @@ php spark burner:init OpenSwoole [basic or websocket]
 When you do not pass any parameters, it will be preset to start the server.
 
 ```
-php spark burner:start OpenSwoole
+php spark burner:start
 ```
+
+By default, burner reads the default driver written in `app/Burner.php`. Of course, you can force Burner to execute commands with the `OpenSwoole` driver by using a parameter like this：
+
+```
+php spark burner:start --driver OpenSwoole
+```
+
+> `--driver OpenSwoole` This parameter also applies to all the commands mentioned below.
 
 ### daemon mode
 
@@ -43,23 +51,29 @@ Let OpenSwoole work in the background.
 When you run the server with this option, Burner will ignore the Automatic reload setting.
 
 ```
-php spark burner:start OpenSwoole daemon
+php spark burner:start --daemon
 ```
 
 ### stop server
 
 ```
-php spark burner:start OpenSwoole stop
+php spark burner:stop
 ```
 
 ### reload worker
 
 ```
-php spark burner:start OpenSwoole reload worker
+php spark burner:reload --mode worker
 ```
 
 ```
-php spark burner:start OpenSwoole reload task_worker
+php spark burner:reload --mode task_worker
+```
+
+### restart worker
+
+```
+php spark burner:restart
 ```
 
 ## OpenSwoole Server Settings
