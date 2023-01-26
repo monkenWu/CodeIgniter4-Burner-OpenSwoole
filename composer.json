@@ -1,6 +1,6 @@
 {
     "name": "monken/codeigniter4-burner-openswoole",
-    "description": "CodeIgniter4 out-of-the-box high-performance server, OpenSwoole Driver.",
+    "description": "CodeIgniter4 out-of-the-box high-performance http/websocket server, OpenSwoole Driver.",
     "keywords": [
 		"codeigniter",
 		"codeigniter4",
@@ -8,6 +8,7 @@
 		"swoole",
 		"high-performance",
 		"server",
+		"websocket",
 		"burner"
 	],
     "type": "library",
@@ -22,7 +23,8 @@
     "prefer-stable": true,
     "require": {
         "php": "^8.0 || ^8.1 || ^8.2",
-        "monken/codeigniter4-burner" : "^0.3",
+        "monken/codeigniter4-burner" : "^0.4",
+        "nyholm/psr7": "^1.5",
         "openswoole/ide-helper": "^22",
         "imefisto/psr-swoole-native": "^1.1",
         "openswoole/core": "^22.1"
