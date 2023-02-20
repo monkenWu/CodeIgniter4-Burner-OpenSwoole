@@ -71,23 +71,23 @@ class OpenSwoole extends BaseConfig
     /**
      * Whether to open the Key/Value Cache provided by Burner.
      * Shared high-speed caching with Swoole-Table implementation.
-     * 
-     * @var boolean
+     *
+     * @var bool
      */
     public $fastCache = false;
 
     /**
      * Buerner Swoole-Table Driver Settings
-     * 
+     *
      * @var string[]
      */
     public $fastCacheConfig = [
-        //Number of rows of the burner cache table
-        'tableSize' => 4096,   
-        //Key/value key Maximum length of string
-        'keyLength' => 1024,
-        //The maximum length of the key/value (if the save type is object, array, string).
-        'valueStringLength' => 1024
+        // Number of rows of the burner cache table
+        'tableSize'         => 4096,
+        // Key/value key Maximum length of string
+        'keyLength'         => 1024,
+        // The maximum length of the key/value (if the save type is object, array, string).
+        'valueStringLength' => 1024,
     ];
 
     /**
@@ -122,11 +122,10 @@ class OpenSwoole extends BaseConfig
      * The Swoole-Start event is registered by Burner.
      * If you need to use the Start event, please declare it in this method.
      *
-     * @param Server $server
      * @return void
      */
-    public function serverStart(Server $server){
-
+    public function serverStart(Server $server)
+    {
     }
 
     /**
@@ -136,7 +135,7 @@ class OpenSwoole extends BaseConfig
      */
     public function server(Server $server)
     {
-        //Please do not register the 'start' event repeatedly.
+        // Please do not register the 'start' event repeatedly.
 
         $server->on('request', static function (Request $swooleRequest, Response $swooleResponse) {
             // Burner handles CodeIgniter4 entry points.

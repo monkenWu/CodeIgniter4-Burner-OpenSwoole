@@ -11,10 +11,8 @@ use CodeIgniter\Config\Factories;
 use CodeIgniter\Events\Events;
 use Exception;
 use Monken\CIBurner\OpenSwoole\Cache\SwooleTable;
-use Monken\CIBurner\OpenSwoole\Psr\ResponseMerger;
-use Monken\CIBurner\OpenSwoole\Psr\ServerRequest as PsrRequest;
+use Monken\CIBurner\OpenSwoole\Psr\PsrFactory;
 use Monken\CIBurner\OpenSwoole\Websocket\Pool as WebsocketPool;
-use Nyholm\Psr7\Factory\Psr17Factory;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
 use OpenSwoole\Http\Server as HttpServer;
@@ -22,14 +20,9 @@ use OpenSwoole\Server;
 use OpenSwoole\Timer;
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server as WebSocketServer;
-use Psr\Http\Message\ServerRequestInterface;
 
 class Worker
 {
-    protected static Psr17Factory $uriFactory;
-    protected static Psr17Factory $streamFactory;
-    protected static Psr17Factory $uploadedFileFactory;
-    protected static ResponseMerger $responseMerger;
     protected static HttpServer|WebSocketServer $server;
     protected static ?Frame $frame = null;
 
@@ -40,11 +33,7 @@ class Worker
      */
     public static function init(HttpServer|WebSocketServer $server)
     {
-        self::$uriFactory          = new Psr17Factory();
-        self::$streamFactory       = new Psr17Factory();
-        self::$uploadedFileFactory = new Psr17Factory();
-        self::$responseMerger      = new ResponseMerger();
-        self::$server              = $server;
+        self::$server = $server;
     }
 
     /**
@@ -63,15 +52,9 @@ class Worker
      */
     public static function httpProcesser(Request $swooleRequest, Response $swooleResponse)
     {
-        $response = \Monken\CIBurner\App::run(self::requestFactory($swooleRequest));
-
-        self::$responseMerger->toOpenSwoole(
-            $response,
-            $swooleResponse
-        )->end();
-
+        $response = \Monken\CIBurner\App::run(PsrFactory::toPsrRequest($swooleRequest));
+        PsrFactory::toOpenSwooleResponse($response, $swooleResponse)->end();
         Events::trigger('burnerAfterSendResponse', self::$server);
-
         \Monken\CIBurner\App::clean();
     }
 
@@ -99,9 +82,11 @@ class Worker
      * Burner handles CodeIgniter4 entry points.
      * Use this function in the Swoole Websocket Message-Event.
      *
+     * @param callable $notFoundHandler If the request record for this Fram is not found in the Websocket Pool, then this Handler will be executed.
+     *
      * @return void
      */
-    public static function websocketProcesser(Frame $frame)
+    public static function websocketProcesser(Frame $frame, ?callable $notFoundHandler = null)
     {
         $websocketRequest = WebsocketPool::instance()->getRequest($frame->fd);
         if ($websocketRequest !== null) {
@@ -109,15 +94,25 @@ class Worker
             \Monken\CIBurner\App::run($websocketRequest, true);
             \Monken\CIBurner\App::clean();
             self::$frame = null;
+        } else {
+            if ($notFoundHandler !== null) {
+                $notFoundHandler(self::$server, $frame);
+            }
         }
     }
 
     /**
-     * get current OpenSwoole Websocket-Frame Instance
+     * Get current OpenSwoole Websocket-Frame Instance
+     *
+     * @param bool $nullable If nullable is true, no error will be thrown if the Frame cannot be found.
      */
-    public static function getFrame(): Frame
+    public static function getFrame(bool $nullable = false): Frame|null
     {
         if (self::$frame === null) {
+            if ($nullable) {
+                return null;
+            }
+
             throw new Exception('You must start the burner through websocketProcesser to get the Frame instance.');
         }
 
@@ -129,31 +124,37 @@ class Worker
      *
      * @param mixed    $data
      * @param int|null $fd   If not passed in, it will be pushed to the current fd
-     *
-     * @return void
      */
-    public static function push($data, ?int $fd, int $opcode = 1)
+    public static function push($data, ?int $fd, int $opcode = 1): bool
     {
-        if (self::$server->isEstablished($fd)) {
-            self::$server->push(
-                $fd ?? self::$frame->fd,
-                $data,
-                $opcode
-            );
-            Events::trigger('burnerAfterPushMessage', self::$server, $fd);
+        $fd ??= self::$frame->fd;
+
+        if (null === $fd) {
+            return false;
         }
+
+        if (self::$server->isEstablished($fd)) {
+            $pushResult = self::$server->push($fd, $data, $opcode);
+            Events::trigger('burnerAfterPushMessage', self::$server, $fd, $pushResult);
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
      * Push messages to all client.
      *
-     * @param callable $messageProcesser $messageProcesser(int $fd)
+     * @param int[]|null $fds You can pass in an int array of fd's and the information will be pushed to those fd's.
      *
      * @return void
      */
-    public static function pushAll(callable $messageProcesser, int $opcode = 1)
+    public static function pushAll(callable $messageProcesser, int $opcode = 1, ?array $fds = null)
     {
-        foreach (self::$server->connections as $fd) {
+        $fds ??= self::$server->connections;
+
+        foreach ($fds as $fd) {
             if (self::$server->isEstablished($fd)) {
                 $message = $messageProcesser($fd);
                 if (null === $message) {
@@ -166,20 +167,7 @@ class Worker
                 }
             }
         }
-        Events::trigger('burnerAfterPushAllMessage', self::$server);
-    }
-
-    /**
-     * Convert Swoole-Request to psr7-Request
-     */
-    public static function requestFactory(Request $swooleRequest): ServerRequestInterface
-    {
-        return (new PsrRequest(
-            $swooleRequest,
-            self::$uriFactory,
-            self::$streamFactory,
-            self::$uploadedFileFactory
-        ))->withUploadedFiles($swooleRequest->files ?? []);
+        Events::trigger('burnerAfterPushAllMessage', self::$server, $fds);
     }
 }
 /** @var \Config\OpenSwoole */
@@ -207,6 +195,8 @@ $server = new ($openSwooleConfig->httpDriver)(
     $openSwooleConfig->mode,
     $openSwooleConfig->type
 );
+
+PsrFactory::init();
 Worker::init($server);
 $server->set($openSwooleConfig->config);
 $server->on('Start', static function (Server $server) use ($openSwooleConfig, $isRestart) {

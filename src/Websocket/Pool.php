@@ -4,7 +4,7 @@ namespace Monken\CIBurner\OpenSwoole\Websocket;
 
 use Config\OpenSwoole as Config;
 use Exception;
-use Monken\CIBurner\OpenSwoole\Worker;
+use Monken\CIBurner\OpenSwoole\Psr\PsrFactory;
 use Nyholm\Psr7\ServerRequest as PsrRequest;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Table;
@@ -57,7 +57,7 @@ class Pool
      */
     public function setRequest(int $fd, Request $request): bool
     {
-        $psr7Request = Worker::requestFactory($request);
+        $psr7Request = PsrFactory::toPsrRequest($request);
         $body        = $request->rawContent();
         if (is_string($body) === false) {
             $body = null;
