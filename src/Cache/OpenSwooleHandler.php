@@ -224,6 +224,6 @@ class OpenSwooleHandler extends BaseHandler
      */
     public function isSupported(): bool
     {
-        return extension_loaded('openswoole') || extension_loaded('swoole');
+        return extension_loaded('openswoole');
     }
 }
