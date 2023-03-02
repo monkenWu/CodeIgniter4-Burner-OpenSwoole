@@ -188,6 +188,8 @@ if ($openSwooleConfig->fastCache) {
 if ($openSwooleConfig->httpDriver === 'OpenSwoole\WebSocket\Server') {
     $websocketPool = new WebsocketPool($openSwooleConfig);
 }
+// init burner
+\Monken\CIBurner\App::setConfig(config('Burner'));
 
 $server = new ($openSwooleConfig->httpDriver)(
     $openSwooleConfig->listeningIp,
