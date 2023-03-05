@@ -15,15 +15,6 @@ use OpenSwoole\Table;
 class OpenSwooleHandler extends BaseHandler
 {
     /**
-     * Default config
-     *
-     * @var array
-     */
-    protected $config = [
-        'defaultTtl' => 0,
-    ];
-
-    /**
      * SwooleTable Class Instance
      *
      * @var SwooleTable
@@ -40,8 +31,6 @@ class OpenSwooleHandler extends BaseHandler
     public function __construct(Cache $config)
     {
         $this->prefix = $config->prefix;
-
-        $this->config = array_merge($this->config, $config->redis);
     }
 
     /**

@@ -144,26 +144,32 @@ class Worker
     }
 
     /**
-     * Push messages to all client.
+     * Push message to all client.
      *
-     * @param int[]|null $fds You can pass in an int array of fd's and the information will be pushed to those fd's.
+     * @param int[]|null $fds $fds If you pass in an integer array of fd's, then these messages will only be passed to these Clients.
      *
      * @return void
      */
-    public static function pushAll(callable $messageProcesser, int $opcode = 1, ?array $fds = null)
+    public static function pushAll(string|callable $message, ?array $fds = null, int $opcode = 1)
     {
         $fds ??= self::$server->connections;
 
         foreach ($fds as $fd) {
             if (self::$server->isEstablished($fd)) {
-                $message = $messageProcesser($fd);
-                if (null === $message) {
+                if (is_callable($message)) {
+                    $resultMessage = $message($fd);
+                } else {
+                    $resultMessage = $message;
+                }
+
+                if (null === $resultMessage) {
                     continue;
                 }
-                if (is_array($message)) {
-                    self::push($message['message'], $fd, $message['opcode']);
+
+                if (is_array($resultMessage)) {
+                    self::push($resultMessage['message'], $fd, $resultMessage['opcode']);
                 } else {
-                    self::push($message, $fd, $opcode);
+                    self::push($resultMessage, $fd, $opcode);
                 }
             }
         }
@@ -188,6 +194,8 @@ if ($openSwooleConfig->fastCache) {
 if ($openSwooleConfig->httpDriver === 'OpenSwoole\WebSocket\Server') {
     $websocketPool = new WebsocketPool($openSwooleConfig);
 }
+// init burner
+\Monken\CIBurner\App::setConfig(config('Burner'));
 
 $server = new ($openSwooleConfig->httpDriver)(
     $openSwooleConfig->listeningIp,
@@ -229,7 +237,7 @@ $server->on('Start', static function (Server $server) use ($openSwooleConfig, $i
     }
 
     if ($openSwooleConfig->fastCache) {
-        SwooleTable::instance()->initTtlRecycler();
+        SwooleTable::instance()->initTtlRecycler($openSwooleConfig->fastCacheConfig['ttlRecyclerTimer']);
     }
 
     $openSwooleConfig->serverStart($server);

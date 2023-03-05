@@ -61,7 +61,7 @@ class Integration implements IntegrationInterface
         }
     }
 
-    public function stopServer(string $frontLoader, string $commands = '')
+    public function stopServer(string $frontLoader, string $commands = '', bool $checkPort = false)
     {
         if (self::isDaemon()) {
             CLI::write('[Daemon mode] Trying to stop the OpenSwoole server....' . PHP_EOL);
@@ -79,6 +79,12 @@ class Integration implements IntegrationInterface
             unlink($temp);
         }
 
+        if ($checkPort) {
+            while ($this->checkPortBindable() === false) {
+                sleep(1);
+            }
+        }
+
         if ($result) {
             CLI::write('The OpenSwoole server is stop.' . PHP_EOL);
         } else {
@@ -89,7 +95,7 @@ class Integration implements IntegrationInterface
     public function restartServer(string $frontLoader, string $commands = '')
     {
         if (self::isDaemon(false)) {
-            $this->stopServer($frontLoader);
+            $this->stopServer($frontLoader, checkPort: true);
             CLI::write('The OpenSwoole server is restarting...');
             $this->startServer($frontLoader, true);
         } else {
@@ -97,6 +103,22 @@ class Integration implements IntegrationInterface
             $this->stopServer($frontLoader);
             CLI::write('The OpenSwoole server is restarting...');
         }
+    }
+
+    public function checkPortBindable()
+    {
+        $port   = config('OpenSwoole')->listeningPort;
+        $socket = @stream_socket_server("tcp://127.0.0.1:{$port}", $errno, $errstr);
+        $result = true;
+        if (! $socket) {
+            $result = false;
+        }
+        if (is_resource($socket)) {
+            fclose($socket);
+        }
+        unset($socket);
+
+        return $result;
     }
 
     public function reloadServer(string $frontLoader, string $commands = '')
