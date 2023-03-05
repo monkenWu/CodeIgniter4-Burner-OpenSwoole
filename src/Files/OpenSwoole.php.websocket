@@ -91,6 +91,8 @@ class OpenSwoole extends BaseConfig
      * @var string[]
      */
     public $fastCacheConfig = [
+        // Periodically check the interval of expired data in the cache in ms.
+        'ttlRecyclerTimer'  => 1000,
         // Number of rows of the burner cache table
         'tableSize'         => 4096,
         // Key/value key Maximum length of string
