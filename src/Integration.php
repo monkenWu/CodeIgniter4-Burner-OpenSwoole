@@ -73,7 +73,7 @@ class Integration implements IntegrationInterface
         $result = false;
         if (is_file($temp)) {
             $pid  = file_get_contents($temp);
-            $kill = popen("kill -TERM {$pid}", 'w');
+            $kill = popen("kill -15 {$pid}", 'w');
             pclose($kill);
             $result = true;
             unlink($temp);

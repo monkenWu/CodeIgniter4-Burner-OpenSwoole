@@ -47,7 +47,9 @@ class Worker
     /**
      * Burner handles CodeIgniter4 entry points
      * and will automatically execute the Swoole-Server-end Sending Response.
-     *
+     *       
+     * @param Request $swooleRequest
+     * @param Response $swooleResponse
      * @return void
      */
     public static function httpProcesser(Request $swooleRequest, Response $swooleResponse)
@@ -61,6 +63,7 @@ class Worker
     /**
      * Please pass the Swoole-Request object in the Swoole Webscoket Open-Event to initialize the worker.
      *
+     * @param Request $swooleRequest
      * @return void
      */
     public static function setWebsocket(Request $swooleRequest)
@@ -71,6 +74,7 @@ class Worker
     /**
      * Remove connection from pool upon close
      *
+     * @param integer $fd
      * @return void
      */
     public static function unsetWebsocket(int $fd)
@@ -84,6 +88,14 @@ class Worker
      *
      * @param callable $notFoundHandler If the request record for this Fram is not found in the Websocket Pool, then this Handler will be executed.
      *
+     * @return void
+     */
+
+    /**
+     * Burner handles websocket use CodeIgniter4 entry points.
+     *
+     * @param Frame $frame
+     * @param callable|null $notFoundHandler(Server $server, Frame $frame) If the request record for this Fram is not found in the Websocket Pool, then this Handler will be executed.
      * @return void
      */
     public static function websocketProcesser(Frame $frame, ?callable $notFoundHandler = null)
@@ -104,7 +116,8 @@ class Worker
     /**
      * Get current OpenSwoole Websocket-Frame Instance
      *
-     * @param bool $nullable If nullable is true, no error will be thrown if the Frame cannot be found.
+     * @param boolean $nullable If nullable is true, no error will be thrown if the Frame cannot be found.
+     * @return Frame|null
      */
     public static function getFrame(bool $nullable = false): Frame|null
     {
@@ -122,8 +135,10 @@ class Worker
     /**
      * Push message to client.
      *
-     * @param mixed    $data
-     * @param int|null $fd   If not passed in, it will be pushed to the current fd
+     * @param $data
+     * @param integer|null $fd If not passed in, it will be pushed to the current fd
+     * @param integer $opcode Swoole Websocket opcode
+     * @return boolean
      */
     public static function push($data, ?int $fd, int $opcode = 1): bool
     {
@@ -146,8 +161,9 @@ class Worker
     /**
      * Push message to all client.
      *
-     * @param int[]|null $fds $fds If you pass in an integer array of fd's, then these messages will only be passed to these Clients.
-     *
+     * @param string|callable $message If it is a string, it will be sent directly. If it is a callable, it will be executed and the return value will be sent.
+     * @param array|null $fds
+     * @param integer $opcode
      * @return void
      */
     public static function pushAll(string|callable $message, ?array $fds = null, int $opcode = 1)
