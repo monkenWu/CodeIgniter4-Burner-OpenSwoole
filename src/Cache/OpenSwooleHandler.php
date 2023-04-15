@@ -192,11 +192,10 @@ class OpenSwooleHandler extends BaseHandler
      */
     public function getMetaData(string $key)
     {
-        $key   = static::validateKey($key, $this->prefix);
         $value = $this->get($key);
         if ($value !== null) {
             $time   = Time::now()->getTimestamp();
-            $expire = $this->table->get($key, 'expire');
+            $expire = $this->table->get(static::validateKey($key, $this->prefix), 'expire');
 
             return [
                 'expire' => $expire > 0 ? $expire : null,

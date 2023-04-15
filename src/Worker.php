@@ -2,7 +2,8 @@
 
 namespace Monken\CIBurner\OpenSwoole;
 
-$opt = getopt('f:r::s::');
+$opt = getopt('f:a:r::s::');
+define('APPPATH', $opt['a']);
 require_once $opt['f'];
 
 define('BURNER_DRIVER', 'OpenSwoole');
