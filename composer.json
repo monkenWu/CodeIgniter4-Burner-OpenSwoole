@@ -23,7 +23,7 @@
     "prefer-stable": true,
     "require": {
         "php": "^8.0 || ^8.1 || ^8.2",
-        "monken/codeigniter4-burner" : "^0.5",
+        "monken/codeigniter4-burner" : "1.0.*",
         "nyholm/psr7": "^1.5",
         "openswoole/ide-helper": "^22",
         "imefisto/psr-swoole-native": "^1.1",
