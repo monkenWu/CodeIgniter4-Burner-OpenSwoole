@@ -30,7 +30,7 @@ class Integration implements IntegrationInterface
             $configType = 'basic';
         }
 
-        $basePath   = ROOTPATH . 'app/Config' . DIRECTORY_SEPARATOR;
+        $basePath   = APPPATH . '/Config' . DIRECTORY_SEPARATOR;
         $configPath = $basePath . 'OpenSwoole.php';
 
         if (file_exists($configPath)) {
@@ -50,9 +50,10 @@ class Integration implements IntegrationInterface
             $commands = '-s=daemon ' . $commands;
         }
 
+        $appDir = APPPATH;
         $nowDir     = __DIR__;
         $workerPath = $nowDir . DIRECTORY_SEPARATOR . 'Worker.php';
-        $start      = popen("php {$workerPath} -f={$frontLoader} {$commands}", 'w');
+        $start      = popen("php {$workerPath} -f={$frontLoader} -a=$appDir {$commands}", 'w');
         pclose($start);
         if (self::needRestart()) {
             $this->startServer($frontLoader, $daemon, '-r=restart');

@@ -2,7 +2,8 @@
 
 namespace Monken\CIBurner\OpenSwoole;
 
-$opt = getopt('f:r::s::');
+$opt = getopt('f:a:r::s::');
+define('APPPATH', $opt['a']);
 require_once $opt['f'];
 
 define('BURNER_DRIVER', 'OpenSwoole');
@@ -10,6 +11,7 @@ define('BURNER_DRIVER', 'OpenSwoole');
 use CodeIgniter\Config\Factories;
 use CodeIgniter\Events\Events;
 use Exception;
+use Monken\CIBurner\OpenSwoole\Cache\OpenSwooleHandler;
 use Monken\CIBurner\OpenSwoole\Cache\SwooleTable;
 use Monken\CIBurner\OpenSwoole\Psr\PsrFactory;
 use Monken\CIBurner\OpenSwoole\Websocket\Pool as WebsocketPool;
@@ -24,11 +26,13 @@ use OpenSwoole\WebSocket\Server as WebSocketServer;
 class Worker
 {
     protected static HttpServer|WebSocketServer $server;
-    protected static ?Frame $frame = null;
+    protected static ?Frame $frame                 = null;
+    protected static ?OpenSwooleHandler $fastCache = null;
 
     /**
      * Init Worker
      *
+     * @param HttpServer|WebSocketServer $server
      * @return void
      */
     public static function init(HttpServer|WebSocketServer $server)
@@ -38,6 +42,8 @@ class Worker
 
     /**
      * get OpenSwoole Server Instance
+     *
+     * @return HttpServer|WebSocketServer
      */
     public static function getServer(): HttpServer|WebSocketServer
     {
@@ -47,7 +53,7 @@ class Worker
     /**
      * Burner handles CodeIgniter4 entry points
      * and will automatically execute the Swoole-Server-end Sending Response.
-     *       
+     *
      * @param Request $swooleRequest
      * @param Response $swooleResponse
      * @return void
@@ -81,15 +87,6 @@ class Worker
     {
         WebsocketPool::instance()->deleteRequest($fd);
     }
-
-    /**
-     * Burner handles CodeIgniter4 entry points.
-     * Use this function in the Swoole Websocket Message-Event.
-     *
-     * @param callable $notFoundHandler If the request record for this Fram is not found in the Websocket Pool, then this Handler will be executed.
-     *
-     * @return void
-     */
 
     /**
      * Burner handles websocket use CodeIgniter4 entry points.
@@ -135,10 +132,10 @@ class Worker
     /**
      * Push message to client.
      *
-     * @param $data
-     * @param integer|null $fd If not passed in, it will be pushed to the current fd
-     * @param integer $opcode Swoole Websocket opcode
-     * @return boolean
+     * @param mixed    $data
+     * @param int|null $fd     If not passed in, it will be pushed to the current fd
+     * @param int      $opcode Swoole Websocket opcode
+     * @param mixed    $data
      */
     public static function push($data, ?int $fd, int $opcode = 1): bool
     {
@@ -191,7 +188,30 @@ class Worker
         }
         Events::trigger('burnerAfterPushAllMessage', self::$server, $fds);
     }
+
+    /**
+     * Get the shared fast cache instance.
+     *
+     * @return OpenSwooleHandler|null if fast cache is disabled, return null.
+     */
+    public static function getFastCache(): ?OpenSwooleHandler
+    {
+        /** @var \Config\OpenSwoole */
+        $openSwooleConfig = Factories::config('OpenSwoole');
+        if ($openSwooleConfig->fastCache === false) {
+            return null;
+        }
+
+        if (self::$fastCache === null) {
+            $cacheConfig     = Factories::config('Cache');
+            self::$fastCache = new OpenSwooleHandler($cacheConfig);
+            self::$fastCache->initialize();
+        }
+
+        return self::$fastCache;
+    }
 }
+
 /** @var \Config\OpenSwoole */
 $openSwooleConfig = Factories::config('OpenSwoole');
 
