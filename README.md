@@ -15,8 +15,8 @@ This Library is the OpenSwoole Driver for [CodeIgniter4 Burner](https://github.c
 ## Install
 
 ### Prerequisites
-1. CodeIgniter Framework 4.3.0^
-2. CodeIgniter4-Burner 1.0.0^
+1. CodeIgniter Framework 4.4.0^
+2. CodeIgniter4-Burner 1.0.0-beta.3
 3. Composer
 4. PHP8^
 5. OpenSwoole 22^, [OpenSwoole Pre Requisites](https://openswoole.com/docs/get-started/prerequisites)
@@ -27,7 +27,7 @@ This Library is the OpenSwoole Driver for [CodeIgniter4 Burner](https://github.c
 You can install this Driver with the following command.
 
 ```
-composer require monken/codeigniter4-burner-OpenSwoole:^1.0@beta
+composer require monken/codeigniter4-burner-OpenSwoole:1.0.0-beta.3
 ```
 
 Initialize Server files using built-in commands in the library.
